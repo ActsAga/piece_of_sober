@@ -7,22 +7,13 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		7B6095842D7E274700DB60FE /* Messages.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7B84000D2D7D4C8400820E7B /* Messages.framework */; };
-		7B6095902D7E274800DB60FE /* NoDrunkTextMessages.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 7B6095832D7E274700DB60FE /* NoDrunkTextMessages.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-		7B6095952D7E278800DB60FE /* ContactManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B8400252D7E26D400820E7B /* ContactManager.swift */; };
 		7B8400262D7E26D700820E7B /* ContactManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B8400252D7E26D400820E7B /* ContactManager.swift */; };
 		7B840D1B2D7E2AF4004704AB /* NoDrunkText.plist in Resources */ = {isa = PBXBuildFile; fileRef = 7B840D1A2D7E2AF4004704AB /* NoDrunkText.plist */; };
-		7B840D1C2D7E2AF4004704AB /* NoDrunkText.plist in Resources */ = {isa = PBXBuildFile; fileRef = 7B840D1A2D7E2AF4004704AB /* NoDrunkText.plist */; };
+		A12113C42D826B0400677E38 /* Messages.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7B84000D2D7D4C8400820E7B /* Messages.framework */; };
+		A12113D02D826B0600677E38 /* NoDrunkTextMessages.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = A12113C32D826B0400677E38 /* NoDrunkTextMessages.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
-		7B60958E2D7E274800DB60FE /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 7B84FFCB2D7D4C4900820E7B /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 7B6095822D7E274700DB60FE;
-			remoteInfo = NoDrunkTextMessages;
-		};
 		7B84FFEA2D7D4C4A00820E7B /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 7B84FFCB2D7D4C4900820E7B /* Project object */;
@@ -37,6 +28,13 @@
 			remoteGlobalIDString = 7B84FFD22D7D4C4900820E7B;
 			remoteInfo = NoDrunkText;
 		};
+		A12113CE2D826B0600677E38 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 7B84FFCB2D7D4C4900820E7B /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A12113C22D826B0400677E38;
+			remoteInfo = NoDrunkTextMessages;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -46,7 +44,7 @@
 			dstPath = "";
 			dstSubfolderSpec = 13;
 			files = (
-				7B6095902D7E274800DB60FE /* NoDrunkTextMessages.appex in Embed Foundation Extensions */,
+				A12113D02D826B0600677E38 /* NoDrunkTextMessages.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -54,23 +52,16 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		7B6095832D7E274700DB60FE /* NoDrunkTextMessages.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = NoDrunkTextMessages.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		7B84000D2D7D4C8400820E7B /* Messages.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Messages.framework; path = System/Library/Frameworks/Messages.framework; sourceTree = SDKROOT; };
 		7B8400252D7E26D400820E7B /* ContactManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactManager.swift; sourceTree = "<group>"; };
 		7B840D1A2D7E2AF4004704AB /* NoDrunkText.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = NoDrunkText.plist; sourceTree = "<group>"; };
 		7B84FFD32D7D4C4900820E7B /* NoDrunkText.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NoDrunkText.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		7B84FFE92D7D4C4A00820E7B /* NoDrunkTextTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NoDrunkTextTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		7B84FFF32D7D4C4A00820E7B /* NoDrunkTextUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NoDrunkTextUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		A12113C32D826B0400677E38 /* NoDrunkTextMessages.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = NoDrunkTextMessages.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		7B6095942D7E274800DB60FE /* Exceptions for "NoDrunkTextMessages" folder in "NoDrunkTextMessages" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Info.plist,
-			);
-			target = 7B6095822D7E274700DB60FE /* NoDrunkTextMessages */;
-		};
 		7B84FFFB2D7D4C4A00820E7B /* Exceptions for "NoDrunkText" folder in "NoDrunkText" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -78,14 +69,18 @@
 			);
 			target = 7B84FFD22D7D4C4900820E7B /* NoDrunkText */;
 		};
+		A12113D42D826B0600677E38 /* Exceptions for "NoDrunkTextMessages" folder in "NoDrunkTextMessages" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = A12113C22D826B0400677E38 /* NoDrunkTextMessages */;
+		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		7B6095852D7E274700DB60FE /* NoDrunkTextMessages */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				7B6095942D7E274800DB60FE /* Exceptions for "NoDrunkTextMessages" folder in "NoDrunkTextMessages" target */,
-			);
 			path = NoDrunkTextMessages;
 			sourceTree = "<group>";
 		};
@@ -107,17 +102,17 @@
 			path = NoDrunkTextUITests;
 			sourceTree = "<group>";
 		};
+		A12113C52D826B0500677E38 /* NoDrunkTextMessages */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				A12113D42D826B0600677E38 /* Exceptions for "NoDrunkTextMessages" folder in "NoDrunkTextMessages" target */,
+			);
+			path = NoDrunkTextMessages;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		7B6095802D7E274700DB60FE /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				7B6095842D7E274700DB60FE /* Messages.framework in Frameworks */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		7B84FFD02D7D4C4900820E7B /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -136,6 +131,14 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A12113C02D826B0400677E38 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A12113C42D826B0400677E38 /* Messages.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -159,6 +162,7 @@
 				7B84FFEC2D7D4C4A00820E7B /* NoDrunkTextTests */,
 				7B84FFF62D7D4C4A00820E7B /* NoDrunkTextUITests */,
 				7B6095852D7E274700DB60FE /* NoDrunkTextMessages */,
+				A12113C52D826B0500677E38 /* NoDrunkTextMessages */,
 				7B84000C2D7D4C8400820E7B /* Frameworks */,
 				7B84FFD42D7D4C4900820E7B /* Products */,
 			);
@@ -170,7 +174,7 @@
 				7B84FFD32D7D4C4900820E7B /* NoDrunkText.app */,
 				7B84FFE92D7D4C4A00820E7B /* NoDrunkTextTests.xctest */,
 				7B84FFF32D7D4C4A00820E7B /* NoDrunkTextUITests.xctest */,
-				7B6095832D7E274700DB60FE /* NoDrunkTextMessages.appex */,
+				A12113C32D826B0400677E38 /* NoDrunkTextMessages.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -178,28 +182,6 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		7B6095822D7E274700DB60FE /* NoDrunkTextMessages */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 7B6095912D7E274800DB60FE /* Build configuration list for PBXNativeTarget "NoDrunkTextMessages" */;
-			buildPhases = (
-				7B60957F2D7E274700DB60FE /* Sources */,
-				7B6095802D7E274700DB60FE /* Frameworks */,
-				7B6095812D7E274700DB60FE /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			fileSystemSynchronizedGroups = (
-				7B6095852D7E274700DB60FE /* NoDrunkTextMessages */,
-			);
-			name = NoDrunkTextMessages;
-			packageProductDependencies = (
-			);
-			productName = NoDrunkTextMessages;
-			productReference = 7B6095832D7E274700DB60FE /* NoDrunkTextMessages.appex */;
-			productType = "com.apple.product-type.app-extension.messages";
-		};
 		7B84FFD22D7D4C4900820E7B /* NoDrunkText */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 7B84FFFC2D7D4C4A00820E7B /* Build configuration list for PBXNativeTarget "NoDrunkText" */;
@@ -212,7 +194,7 @@
 			buildRules = (
 			);
 			dependencies = (
-				7B60958F2D7E274800DB60FE /* PBXTargetDependency */,
+				A12113CF2D826B0600677E38 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				7B84FFD52D7D4C4900820E7B /* NoDrunkText */,
@@ -270,6 +252,28 @@
 			productReference = 7B84FFF32D7D4C4A00820E7B /* NoDrunkTextUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
+		A12113C22D826B0400677E38 /* NoDrunkTextMessages */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A12113D12D826B0600677E38 /* Build configuration list for PBXNativeTarget "NoDrunkTextMessages" */;
+			buildPhases = (
+				A12113BF2D826B0400677E38 /* Sources */,
+				A12113C02D826B0400677E38 /* Frameworks */,
+				A12113C12D826B0400677E38 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				A12113C52D826B0500677E38 /* NoDrunkTextMessages */,
+			);
+			name = NoDrunkTextMessages;
+			packageProductDependencies = (
+			);
+			productName = NoDrunkTextMessages;
+			productReference = A12113C32D826B0400677E38 /* NoDrunkTextMessages.appex */;
+			productType = "com.apple.product-type.app-extension.messages";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -280,9 +284,6 @@
 				LastSwiftUpdateCheck = 1620;
 				LastUpgradeCheck = 1620;
 				TargetAttributes = {
-					7B6095822D7E274700DB60FE = {
-						CreatedOnToolsVersion = 16.2;
-					};
 					7B84FFD22D7D4C4900820E7B = {
 						CreatedOnToolsVersion = 16.2;
 					};
@@ -293,6 +294,9 @@
 					7B84FFF22D7D4C4A00820E7B = {
 						CreatedOnToolsVersion = 16.2;
 						TestTargetID = 7B84FFD22D7D4C4900820E7B;
+					};
+					A12113C22D826B0400677E38 = {
+						CreatedOnToolsVersion = 16.2;
 					};
 				};
 			};
@@ -313,20 +317,12 @@
 				7B84FFD22D7D4C4900820E7B /* NoDrunkText */,
 				7B84FFE82D7D4C4A00820E7B /* NoDrunkTextTests */,
 				7B84FFF22D7D4C4A00820E7B /* NoDrunkTextUITests */,
-				7B6095822D7E274700DB60FE /* NoDrunkTextMessages */,
+				A12113C22D826B0400677E38 /* NoDrunkTextMessages */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		7B6095812D7E274700DB60FE /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				7B840D1C2D7E2AF4004704AB /* NoDrunkText.plist in Resources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		7B84FFD12D7D4C4900820E7B /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -349,18 +345,16 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-/* End PBXResourcesBuildPhase section */
-
-/* Begin PBXSourcesBuildPhase section */
-		7B60957F2D7E274700DB60FE /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
+		A12113C12D826B0400677E38 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				7B6095952D7E278800DB60FE /* ContactManager.swift in Sources */,
-				7B6095962D7E278900DB60FE /* MessagesViewController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
 		7B84FFCF2D7D4C4900820E7B /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -383,14 +377,16 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A12113BF2D826B0400677E38 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
-		7B60958F2D7E274800DB60FE /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 7B6095822D7E274700DB60FE /* NoDrunkTextMessages */;
-			targetProxy = 7B60958E2D7E274800DB60FE /* PBXContainerItemProxy */;
-		};
 		7B84FFEB2D7D4C4A00820E7B /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 7B84FFD22D7D4C4900820E7B /* NoDrunkText */;
@@ -401,63 +397,14 @@
 			target = 7B84FFD22D7D4C4900820E7B /* NoDrunkText */;
 			targetProxy = 7B84FFF42D7D4C4A00820E7B /* PBXContainerItemProxy */;
 		};
+		A12113CF2D826B0600677E38 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A12113C22D826B0400677E38 /* NoDrunkTextMessages */;
+			targetProxy = A12113CE2D826B0600677E38 /* PBXContainerItemProxy */;
+		};
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
-		7B6095922D7E274800DB60FE /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = "iMessage App Icon";
-				CODE_SIGN_ENTITLEMENTS = NoDrunkText.entitlements;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = NoDrunkTextMessages/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = NoDrunkTextMessages;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@executable_path/../../Frameworks",
-				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = hemanialaparthi.NoDrunkText.NoDrunkTextMessages;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SKIP_INSTALL = YES;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = Debug;
-		};
-		7B6095932D7E274800DB60FE /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = "iMessage App Icon";
-				CODE_SIGN_ENTITLEMENTS = NoDrunkText.entitlements;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = NoDrunkTextMessages/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = NoDrunkTextMessages;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@executable_path/../../Frameworks",
-				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = hemanialaparthi.NoDrunkText.NoDrunkTextMessages;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SKIP_INSTALL = YES;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = Release;
-		};
 		7B8400002D7D4C4A00820E7B /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -707,18 +654,61 @@
 			};
 			name = Debug;
 		};
+		A12113D22D826B0600677E38 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = "iMessage App Icon";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = C9H6H3RN2K;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = NoDrunkTextMessages/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = NoDrunkTextMessages;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = hemanialaparthi.NoDrunkText.NoDrunkTextMessages;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		A12113D32D826B0600677E38 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = "iMessage App Icon";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = C9H6H3RN2K;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = NoDrunkTextMessages/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = NoDrunkTextMessages;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = hemanialaparthi.NoDrunkText.NoDrunkTextMessages;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		7B6095912D7E274800DB60FE /* Build configuration list for PBXNativeTarget "NoDrunkTextMessages" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				7B6095922D7E274800DB60FE /* Debug */,
-				7B6095932D7E274800DB60FE /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
 		7B8400012D7D4C4A00820E7B /* Build configuration list for PBXNativeTarget "NoDrunkTextTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -751,6 +741,15 @@
 			buildConfigurations = (
 				7B84FFFD2D7D4C4A00820E7B /* Debug */,
 				7B84FFFE2D7D4C4A00820E7B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A12113D12D826B0600677E38 /* Build configuration list for PBXNativeTarget "NoDrunkTextMessages" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A12113D22D826B0600677E38 /* Debug */,
+				A12113D32D826B0600677E38 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

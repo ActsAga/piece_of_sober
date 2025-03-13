@@ -2,7 +2,7 @@
 //  MessagesViewController.swift
 //  NoDrunkTextMessages
 //
-//  Created by Hemani Alaparthi on 3/9/25.
+//  Created by Daniel Bekele on 3/12/25.
 //
 
 import UIKit
@@ -11,104 +11,158 @@ import Messages
 class MessagesViewController: MSMessagesAppViewController {
     
     // MARK: - UI Elements
+    private let warningView: UIView = {
+        let view = UIView()
+        view.backgroundColor = .systemRed.withAlphaComponent(0.1)
+        view.layer.cornerRadius = 12
+        view.isHidden = true
+        return view
+    }()
+    
     private let warningLabel: UILabel = {
         let label = UILabel()
-        label.text = "⚠️ WARNING: You're messaging a high-risk contact! ⚠️"
-        label.textColor = .red
+        label.text = "🚫 Warning: Are you sure you want to text MOM right now? 🚫"
+        label.textColor = .systemRed
         label.textAlignment = .center
         label.numberOfLines = 0
-        label.font = UIFont.boldSystemFont(ofSize: 20)
-        label.isHidden = true
+        label.font = .boldSystemFont(ofSize: 18)
         return label
     }()
-
+    
+    private let warningDescription: UILabel = {
+        let label = UILabel()
+        label.text = "This contact is marked as high-risk.\nMaybe wait until tomorrow?"
+        label.textColor = .systemGray
+        label.textAlignment = .center
+        label.numberOfLines = 0
+        label.font = .systemFont(ofSize: 14)
+        return label
+    }()
+    
     // MARK: - View Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
     }
     
-    // MARK: - UI Setup
     private func setupUI() {
-        view.backgroundColor = .systemBackground
-        view.addSubview(warningLabel)
+        // Remove any existing subviews from storyboard
+        view.subviews.forEach { $0.removeFromSuperview() }
         
-        // Set up constraints
+        // Setup warning view
+        view.addSubview(warningView)
+        warningView.addSubview(warningLabel)
+        warningView.addSubview(warningDescription)
+        
+        // Configure constraints
+        warningView.translatesAutoresizingMaskIntoConstraints = false
         warningLabel.translatesAutoresizingMaskIntoConstraints = false
+        warningDescription.translatesAutoresizingMaskIntoConstraints = false
+        
         NSLayoutConstraint.activate([
-            warningLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            warningLabel.centerYAnchor.constraint(equalTo: view.centerYAnchor),
-            warningLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
-            warningLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20)
+            // Warning view constraints
+            warningView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            warningView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+            warningView.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+            warningView.heightAnchor.constraint(greaterThanOrEqualToConstant: 150),
+            
+            // Warning label constraints
+            warningLabel.topAnchor.constraint(equalTo: warningView.topAnchor, constant: 20),
+            warningLabel.leadingAnchor.constraint(equalTo: warningView.leadingAnchor, constant: 16),
+            warningLabel.trailingAnchor.constraint(equalTo: warningView.trailingAnchor, constant: -16),
+            
+            // Description constraints
+            warningDescription.topAnchor.constraint(equalTo: warningLabel.bottomAnchor, constant: 12),
+            warningDescription.leadingAnchor.constraint(equalTo: warningView.leadingAnchor, constant: 16),
+            warningDescription.trailingAnchor.constraint(equalTo: warningView.trailingAnchor, constant: -16),
+            warningDescription.bottomAnchor.constraint(equalTo: warningView.bottomAnchor, constant: -20)
         ])
     }
     
-    // MARK: - Contact Checking
-    override func willBecomeActive(with conversation: MSConversation) {
-        super.willBecomeActive(with: conversation)
-        checkForLowRatedContacts(in: conversation)
-    }
-    
-    private func checkForLowRatedContacts(in conversation: MSConversation) {
-        let participants = conversation.remoteParticipantIdentifiers
-        
-        let storedContacts = ContactManager.shared.getContacts()
-        let lowRatedContacts = storedContacts.filter { $0.rating <= 2 }
-        
-        for participant in participants {
-            if lowRatedContacts.contains(where: { $0.identifier == participant.uuidString }) {
-                showWarning()
-                return
-            }
-        }
-        hideWarning()
-    }
-    
-    // MARK: - Warning Handling
+    // MARK: - Warning Display
     private func showWarning() {
-        DispatchQueue.main.async {
-            self.warningLabel.isHidden = false
-            // Auto-hide after 5 seconds
-            DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
-                self.hideWarning()
-            }
+        warningView.isHidden = false
+        
+        // Animate the warning appearance
+        warningView.alpha = 0
+        UIView.animate(withDuration: 0.3) {
+            self.warningView.alpha = 1
+        }
+        
+        // Auto-hide after 5 seconds
+        DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+            self.hideWarning()
         }
     }
     
     private func hideWarning() {
-        DispatchQueue.main.async {
-            self.warningLabel.isHidden = true
+        UIView.animate(withDuration: 0.3) {
+            self.warningView.alpha = 0
+        } completion: { _ in
+            self.warningView.isHidden = true
         }
     }
-
-    // MARK: - Preserved Apple Methods
+    
+    // MARK: - Conversation Handling
+    
+    override func willBecomeActive(with conversation: MSConversation) {
+        // Called when the extension is about to move from the inactive to active state.
+        // This will happen when the extension is about to present UI.
+        
+        // Use this method to configure the extension and restore previously stored state.
+    }
+    
     override func didResignActive(with conversation: MSConversation) {
-        // Called when the extension will move from the active to inactive state
-        super.didResignActive(with: conversation)
+        // Called when the extension is about to move from the active to inactive state.
+        // This will happen when the user dismisses the extension, changes to a different
+        // conversation or quits Messages.
+        
+        // Use this method to release shared resources, save user data, invalidate timers,
+        // and store enough state information to restore your extension to its current state
+        // in case it is terminated later.
     }
-
+   
     override func didReceive(_ message: MSMessage, conversation: MSConversation) {
-        // Called when a message arrives
-        super.didReceive(message, conversation: conversation)
+        // Called when a message arrives that was generated by another instance of this
+        // extension on a remote device.
+        
+        // Use this method to trigger UI updates in response to the message.
     }
-
+    
     override func didStartSending(_ message: MSMessage, conversation: MSConversation) {
-        // Called when user taps send
-        super.didStartSending(message, conversation: conversation)
+        // For demo purposes, check if any participant's display name contains "MOM"
+        if let participants = conversation.remoteParticipantIdentifiers {
+            for participant in participants {
+                // In a real app, you'd check against your stored contacts
+                // For demo, we'll just check if the participant ID contains "MOM"
+                if participant.description.uppercased().contains("MOM") {
+                    showWarning()
+                    return
+                }
+            }
+        }
+        
+        // For demo purposes, always show the warning
+        // Remove this line when you have real contact checking
+        showWarning()
     }
-
+    
     override func didCancelSending(_ message: MSMessage, conversation: MSConversation) {
-        // Called when user deletes message without sending
-        super.didCancelSending(message, conversation: conversation)
+        // Called when the user deletes the message without sending it.
+    
+        // Use this to clean up state related to the deleted message.
     }
-
+    
     override func willTransition(to presentationStyle: MSMessagesAppPresentationStyle) {
-        // Called before presentation style changes
-        super.willTransition(to: presentationStyle)
+        // Called before the extension transitions to a new presentation style.
+    
+        // Use this method to prepare for the change in presentation style.
+    }
+    
+    override func didTransition(to presentationStyle: MSMessagesAppPresentationStyle) {
+        // Called after the extension transitions to a new presentation style.
+    
+        // Use this method to finalize any behaviors associated with the change in presentation style.
     }
 
-    override func didTransition(to presentationStyle: MSMessagesAppPresentationStyle) {
-        // Called after presentation style changes
-        super.didTransition(to: presentationStyle)
-    }
 }
