@@ -13,15 +13,41 @@ class MessagesViewController: MSMessagesAppViewController {
     // MARK: - Properties
     private var currentMessage: MSMessage?
     private var currentConversation: MSConversation?
+    private var messageText: String = ""
     
     // MARK: - UI Elements
+    private let messageInputView: UIView = {
+        let view = UIView()
+        view.backgroundColor = .systemBackground
+        return view
+    }()
+    
+    private let messageTextView: UITextView = {
+        let textView = UITextView()
+        textView.font = .systemFont(ofSize: 16)
+        textView.layer.cornerRadius = 12
+        textView.layer.borderWidth = 1
+        textView.layer.borderColor = UIColor.systemGray4.cgColor
+        return textView
+    }()
+    
+    private let sendMessageButton: UIButton = {
+        let button = UIButton(type: .system)
+        button.setTitle("Send Message", for: .normal)
+        button.backgroundColor = .systemBlue
+        button.setTitleColor(.white, for: .normal)
+        button.layer.cornerRadius = 12
+        button.titleLabel?.font = .boldSystemFont(ofSize: 16)
+        return button
+    }()
+    
     private let warningView: UIView = {
         let view = UIView()
         view.backgroundColor = .systemRed.withAlphaComponent(0.15)
         view.layer.cornerRadius = 16
         view.layer.borderWidth = 1
         view.layer.borderColor = UIColor.systemRed.withAlphaComponent(0.3).cgColor
-        view.isHidden = true // Start hidden
+        view.isHidden = true
         return view
     }()
     
@@ -77,6 +103,7 @@ class MessagesViewController: MSMessagesAppViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
+        setupMessageInput()
     }
     
     private func setupUI() {
@@ -91,7 +118,7 @@ class MessagesViewController: MSMessagesAppViewController {
         buttonStack.addArrangedSubview(cancelButton)
         buttonStack.addArrangedSubview(sendButton)
         
-        // Configure constraints
+        // Configure constraints for warning view
         warningView.translatesAutoresizingMaskIntoConstraints = false
         warningLabel.translatesAutoresizingMaskIntoConstraints = false
         warningDescription.translatesAutoresizingMaskIntoConstraints = false
@@ -126,16 +153,60 @@ class MessagesViewController: MSMessagesAppViewController {
         cancelButton.addTarget(self, action: #selector(handleCancel), for: .touchUpInside)
     }
     
+    private func setupMessageInput() {
+        // Add message input view
+        view.addSubview(messageInputView)
+        messageInputView.addSubview(messageTextView)
+        messageInputView.addSubview(sendMessageButton)
+        
+        messageInputView.translatesAutoresizingMaskIntoConstraints = false
+        messageTextView.translatesAutoresizingMaskIntoConstraints = false
+        sendMessageButton.translatesAutoresizingMaskIntoConstraints = false
+        
+        NSLayoutConstraint.activate([
+            messageInputView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            messageInputView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            messageInputView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            messageInputView.heightAnchor.constraint(equalToConstant: 120),
+            
+            messageTextView.leadingAnchor.constraint(equalTo: messageInputView.leadingAnchor, constant: 16),
+            messageTextView.trailingAnchor.constraint(equalTo: messageInputView.trailingAnchor, constant: -16),
+            messageTextView.topAnchor.constraint(equalTo: messageInputView.topAnchor, constant: 8),
+            messageTextView.heightAnchor.constraint(equalToConstant: 60),
+            
+            sendMessageButton.leadingAnchor.constraint(equalTo: messageInputView.leadingAnchor, constant: 16),
+            sendMessageButton.trailingAnchor.constraint(equalTo: messageInputView.trailingAnchor, constant: -16),
+            sendMessageButton.topAnchor.constraint(equalTo: messageTextView.bottomAnchor, constant: 8),
+            sendMessageButton.heightAnchor.constraint(equalToConstant: 44)
+        ])
+        
+        sendMessageButton.addTarget(self, action: #selector(handleSendMessage), for: .touchUpInside)
+    }
+    
     // MARK: - Button Actions
+    @objc private func handleSendMessage() {
+        guard let text = messageTextView.text, !text.isEmpty else { return }
+        messageText = text
+        showWarning()
+    }
+    
     @objc private func handleSendAnyway() {
         print("User chose to send anyway")
-        if let message = currentMessage, let conversation = currentConversation {
-            conversation.insert(message) { error in
-                if let error = error {
-                    print("Error sending message: \(error)")
-                }
+        
+        // Create and send the message
+        let message = MSMessage()
+        let layout = MSMessageTemplateLayout()
+        layout.caption = messageText
+        message.layout = layout
+        
+        currentConversation?.insert(message) { error in
+            if let error = error {
+                print("Error sending message: \(error)")
             }
         }
+        
+        // Clear the text view and hide warning
+        messageTextView.text = ""
         hideWarning()
     }
     
@@ -147,7 +218,6 @@ class MessagesViewController: MSMessagesAppViewController {
     // MARK: - Warning Display
     private func showWarning() {
         print("Showing warning view")
-        requestPresentationStyle(.expanded) // Ensure the extension is visible
         warningView.alpha = 0
         warningView.isHidden = false
         UIView.animate(withDuration: 0.3) {
@@ -161,24 +231,14 @@ class MessagesViewController: MSMessagesAppViewController {
             self.warningView.alpha = 0
         } completion: { _ in
             self.warningView.isHidden = true
-            self.dismiss()
         }
     }
     
-    // MARK: - Message Handling
-    override func didStartSending(_ message: MSMessage, conversation: MSConversation) {
-        print("Attempting to send message")
-        // Store the current message and conversation
-        currentMessage = message
-        currentConversation = conversation
-        
-        // For demo purposes, always show warning
-        showWarning()
-    }
-    
+    // MARK: - Conversation Handling
     override func willBecomeActive(with conversation: MSConversation) {
         super.willBecomeActive(with: conversation)
         currentConversation = conversation
+        requestPresentationStyle(.expanded)
     }
     
     override func didResignActive(with conversation: MSConversation) {
