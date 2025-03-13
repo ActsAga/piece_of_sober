@@ -10,6 +10,10 @@ import Messages
 
 class MessagesViewController: MSMessagesAppViewController {
     
+    // MARK: - Properties
+    private var currentMessage: MSMessage?
+    private var currentConversation: MSConversation?
+    
     // MARK: - UI Elements
     private let warningView: UIView = {
         let view = UIView()
@@ -17,6 +21,7 @@ class MessagesViewController: MSMessagesAppViewController {
         view.layer.cornerRadius = 16
         view.layer.borderWidth = 1
         view.layer.borderColor = UIColor.systemRed.withAlphaComponent(0.3).cgColor
+        view.isHidden = true // Start hidden
         return view
     }()
     
@@ -71,15 +76,7 @@ class MessagesViewController: MSMessagesAppViewController {
     // MARK: - View Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
-        print("MessagesViewController viewDidLoad")
         setupUI()
-        print("UI setup completed")
-    }
-    
-    override func viewDidAppear(_ animated: Bool) {
-        super.viewDidAppear(animated)
-        // For demo purposes, show warning immediately
-        showWarning()
     }
     
     private func setupUI() {
@@ -132,30 +129,56 @@ class MessagesViewController: MSMessagesAppViewController {
     // MARK: - Button Actions
     @objc private func handleSendAnyway() {
         print("User chose to send anyway")
-        dismiss()
+        if let message = currentMessage, let conversation = currentConversation {
+            conversation.insert(message) { error in
+                if let error = error {
+                    print("Error sending message: \(error)")
+                }
+            }
+        }
+        hideWarning()
     }
     
     @objc private func handleCancel() {
         print("User cancelled sending")
-        dismiss()
+        hideWarning()
     }
     
     // MARK: - Warning Display
     private func showWarning() {
         print("Showing warning view")
+        requestPresentationStyle(.expanded) // Ensure the extension is visible
         warningView.alpha = 0
+        warningView.isHidden = false
         UIView.animate(withDuration: 0.3) {
             self.warningView.alpha = 1
         }
     }
     
-    // MARK: - Conversation Handling
+    private func hideWarning() {
+        print("Hiding warning view")
+        UIView.animate(withDuration: 0.3) {
+            self.warningView.alpha = 0
+        } completion: { _ in
+            self.warningView.isHidden = true
+            self.dismiss()
+        }
+    }
+    
+    // MARK: - Message Handling
+    override func didStartSending(_ message: MSMessage, conversation: MSConversation) {
+        print("Attempting to send message")
+        // Store the current message and conversation
+        currentMessage = message
+        currentConversation = conversation
+        
+        // For demo purposes, always show warning
+        showWarning()
+    }
     
     override func willBecomeActive(with conversation: MSConversation) {
-        // Called when the extension is about to move from the inactive to active state.
-        // This will happen when the extension is about to present UI.
-        
-        // Use this method to configure the extension and restore previously stored state.
+        super.willBecomeActive(with: conversation)
+        currentConversation = conversation
     }
     
     override func didResignActive(with conversation: MSConversation) {
@@ -173,26 +196,6 @@ class MessagesViewController: MSMessagesAppViewController {
         // extension on a remote device.
         
         // Use this method to trigger UI updates in response to the message.
-    }
-    
-    override func didStartSending(_ message: MSMessage, conversation: MSConversation) {
-        // For demo purposes, check if any participant's display name contains "MOM"
-        let participants = conversation.remoteParticipantIdentifiers
-        
-        // Check if any participant is "MOM" (for demo purposes)
-        for participant in participants {
-            print("Checking participant: \(participant.uuidString)")
-            // In a real app, you'd check against your stored contacts
-            // For demo, we'll just check if the participant ID contains "MOM"
-            if participant.uuidString.uppercased().contains("MOM") {
-                showWarning()
-                return
-            }
-        }
-        
-        // For demo purposes, always show the warning
-        // Remove this line when you have real contact checking
-        showWarning()
     }
     
     override func didCancelSending(_ message: MSMessage, conversation: MSConversation) {
