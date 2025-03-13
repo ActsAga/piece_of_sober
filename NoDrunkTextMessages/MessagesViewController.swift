@@ -193,33 +193,43 @@ class MessagesViewController: MSMessagesAppViewController {
     @objc private func handleSendAnyway() {
         print("User chose to send anyway")
         
-        // Create and send the message
+        // Create a new message
         let message = MSMessage()
         let layout = MSMessageTemplateLayout()
         layout.caption = messageText
+        layout.subcaption = "Sent with warning override"
         message.layout = layout
+        message.summaryText = messageText
         
-        currentConversation?.insert(message) { error in
-            if let error = error {
-                print("Error sending message: \(error)")
+        // Insert the message into the conversation
+        if let conversation = currentConversation {
+            conversation.insert(message) { [weak self] error in
+                DispatchQueue.main.async {
+                    if let error = error {
+                        print("Error sending message: \(error)")
+                    } else {
+                        print("Message sent successfully")
+                        self?.messageTextView.text = ""
+                        self?.dismiss()
+                    }
+                }
             }
         }
-        
-        // Clear the text view and hide warning
-        messageTextView.text = ""
-        hideWarning()
     }
     
     @objc private func handleCancel() {
         print("User cancelled sending")
-        hideWarning()
+        messageTextView.text = ""
+        dismiss()
     }
     
     // MARK: - Warning Display
     private func showWarning() {
         print("Showing warning view")
+        messageInputView.isHidden = true
         warningView.alpha = 0
         warningView.isHidden = false
+        
         UIView.animate(withDuration: 0.3) {
             self.warningView.alpha = 1
         }
@@ -231,24 +241,30 @@ class MessagesViewController: MSMessagesAppViewController {
             self.warningView.alpha = 0
         } completion: { _ in
             self.warningView.isHidden = true
+            self.messageInputView.isHidden = false
         }
     }
     
     // MARK: - Conversation Handling
     override func willBecomeActive(with conversation: MSConversation) {
         super.willBecomeActive(with: conversation)
+        print("Extension becoming active")
         currentConversation = conversation
         requestPresentationStyle(.expanded)
+        
+        // Reset UI state
+        messageInputView.isHidden = false
+        warningView.isHidden = true
+        messageTextView.text = ""
     }
     
     override func didResignActive(with conversation: MSConversation) {
-        // Called when the extension is about to move from the active to inactive state.
-        // This will happen when the user dismisses the extension, changes to a different
-        // conversation or quits Messages.
-        
-        // Use this method to release shared resources, save user data, invalidate timers,
-        // and store enough state information to restore your extension to its current state
-        // in case it is terminated later.
+        super.didResignActive(with: conversation)
+        print("Extension resigning active")
+        // Clean up
+        messageTextView.text = ""
+        messageText = ""
+        currentMessage = nil
     }
    
     override func didReceive(_ message: MSMessage, conversation: MSConversation) {
