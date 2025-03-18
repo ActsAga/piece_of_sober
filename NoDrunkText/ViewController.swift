@@ -460,9 +460,29 @@ class ContactCell: UITableViewCell {
     private let ratingStack: UIStackView = {
         let stack = UIStackView()
         stack.axis = .horizontal
-        stack.spacing = 8
+        stack.spacing = 12
         stack.distribution = .fillEqually
         return stack
+    }()
+    
+    private let cautionButton: UIButton = {
+        let button = UIButton(type: .system)
+        button.setTitle("Caution", for: .normal)
+        button.backgroundColor = .systemYellow
+        button.setTitleColor(.white, for: .normal)
+        button.layer.cornerRadius = 15
+        button.tag = 1
+        return button
+    }()
+    
+    private let noButton: UIButton = {
+        let button = UIButton(type: .system)
+        button.setTitle("No", for: .normal)
+        button.backgroundColor = .systemRed
+        button.setTitleColor(.white, for: .normal)
+        button.layer.cornerRadius = 15
+        button.tag = 2
+        return button
     }()
     
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
@@ -479,6 +499,9 @@ class ContactCell: UITableViewCell {
         contentView.addSubview(nameLabel)
         contentView.addSubview(ratingStack)
         
+        ratingStack.addArrangedSubview(cautionButton)
+        ratingStack.addArrangedSubview(noButton)
+        
         contactImageView.translatesAutoresizingMaskIntoConstraints = false
         nameLabel.translatesAutoresizingMaskIntoConstraints = false
         ratingStack.translatesAutoresizingMaskIntoConstraints = false
@@ -491,19 +514,13 @@ class ContactCell: UITableViewCell {
             
             nameLabel.leadingAnchor.constraint(equalTo: contactImageView.trailingAnchor, constant: 12),
             nameLabel.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
+            nameLabel.trailingAnchor.constraint(equalTo: ratingStack.leadingAnchor, constant: -12),
             
             ratingStack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
             ratingStack.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
-            ratingStack.widthAnchor.constraint(equalToConstant: 150)
+            ratingStack.widthAnchor.constraint(equalToConstant: 160),
+            ratingStack.heightAnchor.constraint(equalToConstant: 30)
         ])
-        
-        // Add star rating buttons
-        for rating in 1...5 {
-            let button = UIButton(type: .system)
-            button.setImage(UIImage(systemName: "star"), for: .normal)
-            button.tag = rating
-            ratingStack.addArrangedSubview(button)
-        }
     }
     
     func configure(with contact: CNContact, currentRating: Int?) {
@@ -516,12 +533,16 @@ class ContactCell: UITableViewCell {
             contactImageView.tintColor = .systemGray3
         }
         
-        // Update star ratings
-        ratingStack.arrangedSubviews.forEach { view in
-            if let button = view as? UIButton {
-                let starImage = button.tag <= (currentRating ?? 0) ? "star.fill" : "star"
-                button.setImage(UIImage(systemName: starImage), for: .normal)
-                button.tintColor = button.tag <= (currentRating ?? 0) ? .systemYellow : .systemGray
+        // Reset button appearances
+        cautionButton.alpha = 0.5
+        noButton.alpha = 0.5
+        
+        // Update selected rating
+        if let rating = currentRating {
+            if rating == 1 {
+                cautionButton.alpha = 1.0
+            } else if rating == 2 {
+                noButton.alpha = 1.0
             }
         }
     }
@@ -607,25 +628,19 @@ extension ViewController: UITableViewDelegate, UITableViewDataSource {
     }
     
     @objc private func ratingButtonTapped(_ sender: UIButton) {
-        guard let cell = sender.superview?.superview as? UITableViewCell,
+        guard let cell = sender.superview?.superview?.superview as? ContactCell,
               let indexPath = contactsTableView.indexPath(for: cell) else { return }
         
         let contact = filteredContacts[indexPath.row]
         let identifier = contact.phoneNumbers.first?.value.stringValue ?? ""
         let rating = sender.tag
         
-        // save rating using ContactManager
+        // Save rating using ContactManager
         let contactData = ContactManager.Contact(identifier: identifier, rating: rating)
         ContactManager.shared.saveContact(contactData)
         
-        // update UI to show selected rating
-        if let stack = cell.accessoryView as? UIStackView {
-            stack.arrangedSubviews.forEach { view in
-                if let button = view as? UIButton {
-                    button.setTitleColor(button.tag == rating ? .systemBlue : .systemGray, for: .normal)
-                }
-            }
-        }
+        // Refresh the cell to update the UI
+        contactsTableView.reloadRows(at: [indexPath], with: .none)
     }
     
     func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
