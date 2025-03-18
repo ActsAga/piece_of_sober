@@ -17,6 +17,18 @@ struct TimeRange: Codable {
 class ViewController: UIViewController {
 
     // MARK: - UI Elements
+    private let scrollView: UIScrollView = {
+        let scrollView = UIScrollView()
+        scrollView.showsVerticalScrollIndicator = true
+        scrollView.alwaysBounceVertical = true
+        return scrollView
+    }()
+    
+    private let contentView: UIView = {
+        let view = UIView()
+        return view
+    }()
+    
     private let logoImageView: UIImageView = {
         let imageView = UIImageView()
         imageView.contentMode = .scaleAspectFit
@@ -90,7 +102,7 @@ class ViewController: UIViewController {
     
     private let contactsTableView: UITableView = {
         let tableView = UITableView()
-        tableView.register(UITableViewCell.self, forCellReuseIdentifier: "ContactCell")
+        tableView.register(ContactCell.self, forCellReuseIdentifier: "ContactCell")
         tableView.layer.cornerRadius = 12
         tableView.layer.borderWidth = 1
         tableView.layer.borderColor = UIColor.systemGray4.cgColor
@@ -107,7 +119,15 @@ class ViewController: UIViewController {
         return button
     }()
     
+    private let searchBar: UISearchBar = {
+        let searchBar = UISearchBar()
+        searchBar.placeholder = "Search Contacts"
+        searchBar.searchBarStyle = .minimal
+        return searchBar
+    }()
+    
     private var contacts: [CNContact] = []
+    private var filteredContacts: [CNContact] = []
     private var savedTimeRanges: [TimeRange] = []
     private let contactStore = CNContactStore()
     private var editingIndexPath: IndexPath?
@@ -116,6 +136,7 @@ class ViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
+        setupSearchBar()
         requestContactsAccess()
         loadSavedTimeRanges()
     }
@@ -124,20 +145,26 @@ class ViewController: UIViewController {
     private func setupUI() {
         view.backgroundColor = .systemBackground
         
-        // Add subviews
-        view.addSubview(logoImageView)
-        view.addSubview(logoLabel)
-        view.addSubview(timeSectionLabel)
-        view.addSubview(timeRangeStack)
+        // Add scroll view and content view
+        view.addSubview(scrollView)
+        scrollView.addSubview(contentView)
+        
+        // Add subviews to content view
+        contentView.addSubview(logoImageView)
+        contentView.addSubview(logoLabel)
+        contentView.addSubview(timeSectionLabel)
+        contentView.addSubview(timeRangeStack)
         timeRangeStack.addArrangedSubview(startTimePicker)
         timeRangeStack.addArrangedSubview(endTimePicker)
-        view.addSubview(addTimeRangeButton)
-        view.addSubview(savedTimesLabel)
-        view.addSubview(savedTimesTableView)
-        view.addSubview(contactsLabel)
-        view.addSubview(contactsTableView)
+        contentView.addSubview(addTimeRangeButton)
+        contentView.addSubview(savedTimesLabel)
+        contentView.addSubview(savedTimesTableView)
+        contentView.addSubview(contactsLabel)
+        contentView.addSubview(contactsTableView)
         
         // Configure constraints
+        scrollView.translatesAutoresizingMaskIntoConstraints = false
+        contentView.translatesAutoresizingMaskIntoConstraints = false
         logoImageView.translatesAutoresizingMaskIntoConstraints = false
         logoLabel.translatesAutoresizingMaskIntoConstraints = false
         timeSectionLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -149,49 +176,63 @@ class ViewController: UIViewController {
         contactsTableView.translatesAutoresizingMaskIntoConstraints = false
         
         NSLayoutConstraint.activate([
+            // Scroll view constraints
+            scrollView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            
+            // Content view constraints
+            contentView.topAnchor.constraint(equalTo: scrollView.topAnchor),
+            contentView.leadingAnchor.constraint(equalTo: scrollView.leadingAnchor),
+            contentView.trailingAnchor.constraint(equalTo: scrollView.trailingAnchor),
+            contentView.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor),
+            contentView.widthAnchor.constraint(equalTo: scrollView.widthAnchor),
+            
             // Logo constraints
-            logoImageView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 20),
-            logoImageView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            logoImageView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 20),
+            logoImageView.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
             logoImageView.widthAnchor.constraint(equalToConstant: 60),
             logoImageView.heightAnchor.constraint(equalToConstant: 60),
             
             logoLabel.topAnchor.constraint(equalTo: logoImageView.bottomAnchor, constant: 8),
-            logoLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            logoLabel.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
             
             // Time section constraints
             timeSectionLabel.topAnchor.constraint(equalTo: logoLabel.bottomAnchor, constant: 30),
-            timeSectionLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
-            timeSectionLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
+            timeSectionLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
+            timeSectionLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
             
             timeRangeStack.topAnchor.constraint(equalTo: timeSectionLabel.bottomAnchor, constant: 20),
-            timeRangeStack.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
-            timeRangeStack.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
+            timeRangeStack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
+            timeRangeStack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
             timeRangeStack.heightAnchor.constraint(equalToConstant: 200),
             
             addTimeRangeButton.topAnchor.constraint(equalTo: timeRangeStack.bottomAnchor, constant: 20),
-            addTimeRangeButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
-            addTimeRangeButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
+            addTimeRangeButton.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
+            addTimeRangeButton.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
             addTimeRangeButton.heightAnchor.constraint(equalToConstant: 44),
             
             // Saved times section
             savedTimesLabel.topAnchor.constraint(equalTo: addTimeRangeButton.bottomAnchor, constant: 30),
-            savedTimesLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
-            savedTimesLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
+            savedTimesLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
+            savedTimesLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
             
             savedTimesTableView.topAnchor.constraint(equalTo: savedTimesLabel.bottomAnchor, constant: 10),
-            savedTimesTableView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
-            savedTimesTableView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
+            savedTimesTableView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
+            savedTimesTableView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
             savedTimesTableView.heightAnchor.constraint(equalToConstant: 120),
             
             // Contacts section
             contactsLabel.topAnchor.constraint(equalTo: savedTimesTableView.bottomAnchor, constant: 30),
-            contactsLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
-            contactsLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
+            contactsLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
+            contactsLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
             
             contactsTableView.topAnchor.constraint(equalTo: contactsLabel.bottomAnchor, constant: 10),
-            contactsTableView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
-            contactsTableView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
-            contactsTableView.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -20)
+            contactsTableView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
+            contactsTableView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
+            contactsTableView.heightAnchor.constraint(equalToConstant: 400),
+            contactsTableView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -20)
         ])
         
         // Configure table views
@@ -202,6 +243,24 @@ class ViewController: UIViewController {
         
         // Add button action
         addTimeRangeButton.addTarget(self, action: #selector(addTimeRangeTapped), for: .touchUpInside)
+    }
+    
+    private func setupSearchBar() {
+        // create a container view for the search bar
+        let searchContainer = UIView(frame: CGRect(x: 0, y: 0, width: view.bounds.width - 40, height: 44))
+        searchContainer.backgroundColor = .clear
+        
+        // Configure search bar frame
+        searchBar.frame = searchContainer.bounds
+        
+        // Add search bar to container
+        searchContainer.addSubview(searchBar)
+        
+        // Set as header view
+        contactsTableView.tableHeaderView = searchContainer
+        
+        // Set delegate
+        searchBar.delegate = self
     }
     
     // MARK: - Actions
@@ -279,25 +338,45 @@ class ViewController: UIViewController {
             if granted {
                 self?.fetchContacts()
             } else {
-                print("Contacts access denied")
+                DispatchQueue.main.async {
+                    self?.showAlert(title: "Contacts Access Denied", message: "Please enable contacts access in Settings to rate your contacts.")
+                }
             }
         }
     }
     
     private func fetchContacts() {
-        let keys = [CNContactGivenNameKey, CNContactFamilyNameKey, CNContactPhoneNumbersKey]
+        let keys = [CNContactGivenNameKey, CNContactFamilyNameKey, CNContactPhoneNumbersKey, CNContactImageDataKey]
         let request = CNContactFetchRequest(keysToFetch: keys as [CNKeyDescriptor])
         
         do {
-            try contactStore.enumerateContacts(with: request) { [weak self] contact, stop in
-                self?.contacts.append(contact)
-                DispatchQueue.main.async {
-                    self?.contactsTableView.reloadData()
+            var fetchedContacts: [CNContact] = []
+            try contactStore.enumerateContacts(with: request) { contact, stop in
+                fetchedContacts.append(contact)
+            }
+            
+            DispatchQueue.main.async { [weak self] in
+                self?.contacts = fetchedContacts.sorted { 
+                    ($0.givenName + $0.familyName).lowercased() < ($1.givenName + $1.familyName).lowercased()
                 }
+                self?.filteredContacts = self?.contacts ?? []
+                self?.contactsTableView.reloadData()
             }
         } catch {
             print("Error fetching contacts: \(error)")
         }
+    }
+    
+    private func filterContacts(with searchText: String) {
+        if searchText.isEmpty {
+            filteredContacts = contacts
+        } else {
+            filteredContacts = contacts.filter {
+                let name = "\($0.givenName) \($0.familyName)".lowercased()
+                return name.contains(searchText.lowercased())
+            }
+        }
+        contactsTableView.reloadData()
     }
 }
 
@@ -361,6 +440,93 @@ class TimeRangeCell: UITableViewCell {
     }
 }
 
+// MARK: - ContactCell
+class ContactCell: UITableViewCell {
+    private let contactImageView: UIImageView = {
+        let imageView = UIImageView()
+        imageView.contentMode = .scaleAspectFill
+        imageView.clipsToBounds = true
+        imageView.layer.cornerRadius = 25
+        imageView.backgroundColor = .systemGray5
+        return imageView
+    }()
+    
+    private let nameLabel: UILabel = {
+        let label = UILabel()
+        label.font = .systemFont(ofSize: 16, weight: .medium)
+        return label
+    }()
+    
+    private let ratingStack: UIStackView = {
+        let stack = UIStackView()
+        stack.axis = .horizontal
+        stack.spacing = 8
+        stack.distribution = .fillEqually
+        return stack
+    }()
+    
+    override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
+        super.init(style: style, reuseIdentifier: reuseIdentifier)
+        setupUI()
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
+    private func setupUI() {
+        contentView.addSubview(contactImageView)
+        contentView.addSubview(nameLabel)
+        contentView.addSubview(ratingStack)
+        
+        contactImageView.translatesAutoresizingMaskIntoConstraints = false
+        nameLabel.translatesAutoresizingMaskIntoConstraints = false
+        ratingStack.translatesAutoresizingMaskIntoConstraints = false
+        
+        NSLayoutConstraint.activate([
+            contactImageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
+            contactImageView.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
+            contactImageView.widthAnchor.constraint(equalToConstant: 50),
+            contactImageView.heightAnchor.constraint(equalToConstant: 50),
+            
+            nameLabel.leadingAnchor.constraint(equalTo: contactImageView.trailingAnchor, constant: 12),
+            nameLabel.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
+            
+            ratingStack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
+            ratingStack.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
+            ratingStack.widthAnchor.constraint(equalToConstant: 150)
+        ])
+        
+        // Add star rating buttons
+        for rating in 1...5 {
+            let button = UIButton(type: .system)
+            button.setImage(UIImage(systemName: "star"), for: .normal)
+            button.tag = rating
+            ratingStack.addArrangedSubview(button)
+        }
+    }
+    
+    func configure(with contact: CNContact, currentRating: Int?) {
+        nameLabel.text = "\(contact.givenName) \(contact.familyName)"
+        
+        if let imageData = contact.imageData {
+            contactImageView.image = UIImage(data: imageData)
+        } else {
+            contactImageView.image = UIImage(systemName: "person.circle.fill")
+            contactImageView.tintColor = .systemGray3
+        }
+        
+        // Update star ratings
+        ratingStack.arrangedSubviews.forEach { view in
+            if let button = view as? UIButton {
+                let starImage = button.tag <= (currentRating ?? 0) ? "star.fill" : "star"
+                button.setImage(UIImage(systemName: starImage), for: .normal)
+                button.tintColor = button.tag <= (currentRating ?? 0) ? .systemYellow : .systemGray
+            }
+        }
+    }
+}
+
 // MARK: - UITableView Extensions
 extension ViewController: UITableViewDelegate, UITableViewDataSource {
     func numberOfSections(in tableView: UITableView) -> Int {
@@ -371,7 +537,7 @@ extension ViewController: UITableViewDelegate, UITableViewDataSource {
         if tableView == savedTimesTableView {
             return savedTimeRanges.count
         } else {
-            return contacts.count
+            return filteredContacts.count
         }
     }
     
@@ -386,25 +552,24 @@ extension ViewController: UITableViewDelegate, UITableViewDataSource {
             
             return cell
         } else {
-            let cell = tableView.dequeueReusableCell(withIdentifier: "ContactCell", for: indexPath)
-            let contact = contacts[indexPath.row]
-            let name = "\(contact.givenName) \(contact.familyName)"
-            cell.textLabel?.text = name
+            let cell = tableView.dequeueReusableCell(withIdentifier: "ContactCell", for: indexPath) as! ContactCell
+            let contact = filteredContacts[indexPath.row]
             
-            // add rating buttons
-            let ratingStack = UIStackView()
-            ratingStack.axis = .horizontal
-            ratingStack.spacing = 8
+            // Get current rating from ContactManager
+            let identifier = contact.phoneNumbers.first?.value.stringValue ?? ""
+            let currentRating = ContactManager.shared.getContacts().first { $0.identifier == identifier }?.rating
             
-            for rating in 1...5 {
-                let button = UIButton(type: .system)
-                button.setTitle("\(rating)", for: .normal)
-                button.tag = rating
-                button.addTarget(self, action: #selector(ratingButtonTapped(_:)), for: .touchUpInside)
-                ratingStack.addArrangedSubview(button)
+            cell.configure(with: contact, currentRating: currentRating)
+            
+            // Add rating button actions
+            if let ratingStack = cell.contentView.subviews.last as? UIStackView {
+                ratingStack.arrangedSubviews.forEach { view in
+                    if let button = view as? UIButton {
+                        button.addTarget(self, action: #selector(ratingButtonTapped(_:)), for: .touchUpInside)
+                    }
+                }
             }
             
-            cell.accessoryView = ratingStack
             return cell
         }
     }
@@ -445,7 +610,7 @@ extension ViewController: UITableViewDelegate, UITableViewDataSource {
         guard let cell = sender.superview?.superview as? UITableViewCell,
               let indexPath = contactsTableView.indexPath(for: cell) else { return }
         
-        let contact = contacts[indexPath.row]
+        let contact = filteredContacts[indexPath.row]
         let identifier = contact.phoneNumbers.first?.value.stringValue ?? ""
         let rating = sender.tag
         
@@ -461,6 +626,17 @@ extension ViewController: UITableViewDelegate, UITableViewDataSource {
                 }
             }
         }
+    }
+    
+    func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
+        return tableView == contactsTableView ? 70 : UITableView.automaticDimension
+    }
+}
+
+// MARK: - UISearchBar Delegate
+extension ViewController: UISearchBarDelegate {
+    func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
+        filterContacts(with: searchText)
     }
 }
 
