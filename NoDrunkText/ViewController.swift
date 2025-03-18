@@ -460,7 +460,7 @@ class ContactCell: UITableViewCell {
     private let ratingStack: UIStackView = {
         let stack = UIStackView()
         stack.axis = .horizontal
-        stack.spacing = 12
+        stack.spacing = 8
         stack.distribution = .fillEqually
         return stack
     }()
@@ -623,6 +623,22 @@ extension ViewController: UITableViewDelegate, UITableViewDataSource {
             editAction.backgroundColor = .systemOrange
             
             return UISwipeActionsConfiguration(actions: [deleteAction, editAction])
+        } else if tableView == contactsTableView {
+            let contact = filteredContacts[indexPath.row]
+            let identifier = contact.phoneNumbers.first?.value.stringValue ?? ""
+            
+            // Only show clear action if contact has a rating
+            if let _ = ContactManager.shared.getContacts().first(where: { $0.identifier == identifier }) {
+                let clearAction = UIContextualAction(style: .destructive, title: "Clear Rating") { [weak self] (_, _, completion) in
+                    let contactData = ContactManager.Contact(identifier: identifier, rating: 0)
+                    ContactManager.shared.saveContact(contactData)
+                    self?.contactsTableView.reloadRows(at: [indexPath], with: .automatic)
+                    completion(true)
+                }
+                clearAction.backgroundColor = .systemRed
+                
+                return UISwipeActionsConfiguration(actions: [clearAction])
+            }
         }
         return nil
     }
@@ -639,8 +655,8 @@ extension ViewController: UITableViewDelegate, UITableViewDataSource {
         let contactData = ContactManager.Contact(identifier: identifier, rating: rating)
         ContactManager.shared.saveContact(contactData)
         
-        // Refresh the cell to update the UI
-        contactsTableView.reloadRows(at: [indexPath], with: .none)
+        // Refresh the cell
+        contactsTableView.reloadRows(at: [indexPath], with: .automatic)
     }
     
     func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
