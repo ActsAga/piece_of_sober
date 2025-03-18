@@ -16,6 +16,11 @@ class ContactManager {
         var rating: Int
     }
     
+    struct TimeRange: Codable {
+        let start: Date
+        let end: Date
+    }
+    
     func saveContact(_ contact: Contact) {
         var contacts = getContacts()
         if let index = contacts.firstIndex(where: { $0.identifier == contact.identifier }) {

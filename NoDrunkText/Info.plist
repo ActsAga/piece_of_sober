@@ -21,5 +21,7 @@
 			</array>
 		</dict>
 	</dict>
+	<key>NSContactsUsageDescription</key>
+	<string>We need access to your contacts to allow you to rate them for the NoDrunkText feature.</string>
 </dict>
 </plist>
