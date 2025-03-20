@@ -288,6 +288,26 @@ class ViewController: UIViewController {
     }
     
     private func validateTimeRange(start: Date, end: Date) -> Bool {
+        let calendar = Calendar.current
+        let startComponents = calendar.dateComponents([.hour, .minute], from: start)
+        let endComponents = calendar.dateComponents([.hour, .minute], from: end)
+        
+        // If end time is earlier than start time, it means it's on the next day
+        if let startHour = startComponents.hour,
+           let startMinute = startComponents.minute,
+           let endHour = endComponents.hour,
+           let endMinute = endComponents.minute {
+            
+            let startMinutes = startHour * 60 + startMinute
+            let endMinutes = endHour * 60 + endMinute
+            
+            // If end time is earlier than start time, it's valid (crossing midnight)
+            if endMinutes <= startMinutes {
+                return true
+            }
+        }
+        
+        // For same-day ranges, end must be after start
         if start >= end {
             showAlert(title: "Invalid Time Range", message: "End time must be after start time")
             return false
