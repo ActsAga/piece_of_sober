@@ -12,6 +12,22 @@ import Contacts
 struct TimeRange: Codable {
     let start: Date
     let end: Date
+    
+    var startHour: Int {
+        Calendar.current.component(.hour, from: start)
+    }
+    
+    var startMinute: Int {
+        Calendar.current.component(.minute, from: start)
+    }
+    
+    var endHour: Int {
+        Calendar.current.component(.hour, from: end)
+    }
+    
+    var endMinute: Int {
+        Calendar.current.component(.minute, from: end)
+    }
 }
 
 class ViewController: UIViewController {
@@ -339,17 +355,46 @@ class ViewController: UIViewController {
     
     // MARK: - Data Management
     private func loadSavedTimeRanges() {
-        if let data = UserDefaults.standard.data(forKey: "savedTimeRanges"),
+        print("\n=== Loading Time Ranges ===")
+        let groupID = "group.com.danielbekele.NoDrunkText"
+        guard let defaults = UserDefaults(suiteName: groupID) else {
+            print("❌ Could not access App Group UserDefaults")
+            return
+        }
+        
+        if let data = defaults.data(forKey: "timeRanges"),
            let ranges = try? JSONDecoder().decode([TimeRange].self, from: data) {
             savedTimeRanges = ranges
-            savedTimesTableView.reloadData()
+            print("✅ Loaded \(ranges.count) time ranges:")
+            for range in ranges {
+                print("   • \(range.startHour):\(String(format: "%02d", range.startMinute)) - \(range.endHour):\(String(format: "%02d", range.endMinute))")
+            }
+        } else {
+            print("❌ No time ranges found in UserDefaults")
         }
+        print("=====================\n")
+        savedTimesTableView.reloadData()
     }
     
     private func saveTimeRanges() {
-        if let data = try? JSONEncoder().encode(savedTimeRanges) {
-            UserDefaults.standard.set(data, forKey: "savedTimeRanges")
+        print("\n=== Saving Time Ranges ===")
+        let groupID = "group.com.danielbekele.NoDrunkText"
+        guard let defaults = UserDefaults(suiteName: groupID) else {
+            print("❌ Could not access App Group UserDefaults")
+            return
         }
+        
+        if let data = try? JSONEncoder().encode(savedTimeRanges) {
+            defaults.set(data, forKey: "timeRanges")
+            print("✅ Saved \(savedTimeRanges.count) time ranges:")
+            for range in savedTimeRanges {
+                print("   • \(range.startHour):\(String(format: "%02d", range.startMinute)) - \(range.endHour):\(String(format: "%02d", range.endMinute))")
+            }
+            defaults.synchronize()
+        } else {
+            print("❌ Failed to encode time ranges")
+        }
+        print("=====================\n")
     }
     
     // MARK: - Contacts

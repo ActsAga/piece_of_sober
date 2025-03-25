@@ -11,10 +11,24 @@ import Contacts
 
 // MARK: - Models
 struct TimeRange: Codable {
-    let startHour: Int
-    let startMinute: Int
-    let endHour: Int
-    let endMinute: Int
+    let start: Date
+    let end: Date
+    
+    var startHour: Int {
+        Calendar.current.component(.hour, from: start)
+    }
+    
+    var startMinute: Int {
+        Calendar.current.component(.minute, from: start)
+    }
+    
+    var endHour: Int {
+        Calendar.current.component(.hour, from: end)
+    }
+    
+    var endMinute: Int {
+        Calendar.current.component(.minute, from: end)
+    }
 }
 
 struct Contact: Codable {
@@ -37,50 +51,46 @@ class MessagesViewController: MSMessagesAppViewController {
     private var warningAlert: UIAlertController?
     
     private var isInActiveTimeRange: Bool {
-        // Get active time ranges from UserDefaults
-        guard let defaults = userDefaults else {
-            print("DEBUG: UserDefaults not available")
+        let groupID = "group.com.danielbekele.NoDrunkText"
+        guard let defaults = UserDefaults(suiteName: groupID) else {
+            print("⚠️ Could not access App Group UserDefaults with ID: \(groupID)")
             return false
         }
         
-        print("DEBUG: Using app group: group.com.danielbekele.NoDrunkText")
-        
         guard let data = defaults.data(forKey: "timeRanges") else {
-            print("DEBUG: No timeRanges data found in UserDefaults")
+            print("⚠️ No time ranges data found in UserDefaults")
             return false
         }
         
         guard let timeRanges = try? JSONDecoder().decode([TimeRange].self, from: data) else {
-            print("DEBUG: Failed to decode timeRanges data")
+            print("⚠️ Could not decode time ranges data")
             return false
         }
         
-        print("DEBUG: Found \(timeRanges.count) time ranges")
+        print("📅 Found \(timeRanges.count) time ranges")
         
-        // Get current time components
-        let calendar = Calendar.current
+        // Get current time
         let now = Date()
-        let hour = calendar.component(.hour, from: now)
-        let minute = calendar.component(.minute, from: now)
-        let currentMinutes = hour * 60 + minute
-        
-        print("DEBUG: Current time - \(hour):\(minute) (\(currentMinutes) minutes)")
         
         // Check if current time falls within any active range
         for range in timeRanges {
+            let currentHour = Calendar.current.component(.hour, from: now)
+            let currentMinute = Calendar.current.component(.minute, from: now)
+            
+            let currentMinutes = currentHour * 60 + currentMinute
             let startMinutes = range.startHour * 60 + range.startMinute
             let endMinutes = range.endHour * 60 + range.endMinute
             
-            print("DEBUG: Checking range \(range.startHour):\(range.startMinute) - \(range.endHour):\(range.endMinute)")
-            print("DEBUG: \(startMinutes) <= \(currentMinutes) <= \(endMinutes)")
+            print("📍 Checking range: \(range.startHour):\(String(format: "%02d", range.startMinute)) - \(range.endHour):\(String(format: "%02d", range.endMinute))")
+            print("🕒 Current time - Hour: \(currentHour), Minute: \(currentMinute)")
             
             if currentMinutes >= startMinutes && currentMinutes <= endMinutes {
-                print("DEBUG: Current time is within active range!")
+                print("✅ Current time is within active range!")
                 return true
             }
         }
         
-        print("DEBUG: Current time is not within any active range")
+        print("❌ Current time is not within any active range")
         return false
     }
     
@@ -178,8 +188,10 @@ class MessagesViewController: MSMessagesAppViewController {
     // MARK: - View Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
+        print("📱 Extension viewDidLoad")
         setupUI()
         updateCurrentStatus()
+        checkTimeRangesAndWarnIfNeeded()
     }
     
     private func setupUI() {
@@ -289,44 +301,32 @@ class MessagesViewController: MSMessagesAppViewController {
         
         var title = ""
         var message = ""
-        var style: UIAlertController.Style = .alert
         
         switch rating {
         case 1: // Caution
-            title = "⚠️ Caution Warning"
-            message = "You're texting during sensitive hours.\nAny messages you send will be marked as 'Sent with warning'."
-            style = .actionSheet
+            title = "⚠️ Caution"
+            message = "You're texting during sensitive hours.\nPlease confirm you want to proceed with messaging."
         case 2: // High Risk
             title = "🚫 High Risk Warning"
-            message = "This contact is marked as HIGH RISK.\nPlease wait until you're outside sensitive hours to message them."
-            style = .actionSheet
+            message = "This contact is marked as HIGH RISK.\nYou must wait \(cooldownSeconds) seconds before messaging."
         default:
             return
         }
         
-        let alert = UIAlertController(title: title, message: message, preferredStyle: style)
+        let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
         
         // Add actions based on rating
         if rating == 1 {
-            // For Caution, add "Continue" and "Open Settings"
-            let continueAction = UIAlertAction(title: "Continue Messaging", style: .default) { [weak self] _ in
+            let continueAction = UIAlertAction(title: "Continue", style: .default) { [weak self] _ in
                 self?.requestPresentationStyle(.compact)
             }
             alert.addAction(continueAction)
         } else if rating == 2 {
-            // For High Risk, add countdown
-            message += "\n\nCooldown: \(cooldownSeconds) seconds"
             startCooldownTimer()
         }
         
-        // Add "Change Settings" action
-        let settingsAction = UIAlertAction(title: "Change Warning Settings", style: .default) { [weak self] _ in
-            self?.requestPresentationStyle(.expanded)
-        }
-        alert.addAction(settingsAction)
-        
         // Add cancel action
-        let cancelAction = UIAlertAction(title: "Dismiss", style: .cancel) { [weak self] _ in
+        let cancelAction = UIAlertAction(title: "Cancel", style: .cancel) { [weak self] _ in
             self?.requestPresentationStyle(.compact)
         }
         alert.addAction(cancelAction)
@@ -364,10 +364,12 @@ class MessagesViewController: MSMessagesAppViewController {
     // MARK: - Conversation Handling
     override func willBecomeActive(with conversation: MSConversation) {
         super.willBecomeActive(with: conversation)
+        print("\n=== Extension Becoming Active ===")
         currentConversation = conversation
+        
+        checkTimeRangesAndWarnIfNeeded()
         updateCurrentStatus()
         
-        // Only show warning if we're in active hours and have a rating
         if isInActiveTimeRange, 
            let rating = getContactRating(for: conversation),
            rating > 0 {
@@ -377,7 +379,10 @@ class MessagesViewController: MSMessagesAppViewController {
     
     override func didResignActive(with conversation: MSConversation) {
         super.didResignActive(with: conversation)
-        print("Extension resigning active")
+        print("\n=== Extension Resigning Active ===")
+        print("• Cleaning up resources")
+        print("• Saving current state")
+        
         // Clean up
         messageText = ""
         currentMessage = nil
@@ -396,15 +401,19 @@ class MessagesViewController: MSMessagesAppViewController {
             return
         }
         
-        // Show a simple warning alert
+        // Show warning alert
         let title = rating == 2 ? "🚫 High Risk Warning" : "⚠️ Caution"
-        let message = "You're sending a message during sensitive hours (\(getCurrentTimeString())). Are you sure?"
+        let message = rating == 2 ?
+            "This contact is marked as HIGH RISK.\nPlease wait until you're outside sensitive hours." :
+            "You're sending a message during sensitive hours.\nPlease confirm you want to proceed."
         
         let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
         
-        // Add continue action
-        let continueAction = UIAlertAction(title: "Send Anyway", style: .default)
-        alert.addAction(continueAction)
+        // Add continue action for caution only
+        if rating == 1 {
+            let continueAction = UIAlertAction(title: "Send Anyway", style: .default)
+            alert.addAction(continueAction)
+        }
         
         // Add cancel action
         let cancelAction = UIAlertAction(title: "Cancel", style: .cancel)
@@ -524,5 +533,62 @@ class MessagesViewController: MSMessagesAppViewController {
         let formatter = DateFormatter()
         formatter.timeStyle = .short
         return formatter.string(from: Date())
+    }
+    
+    private func checkTimeRangesAndWarnIfNeeded() {
+        print("\n=== Time Range Check ===")
+        print("📅 Checking time ranges in App Group...")
+        
+        let groupID = "group.com.danielbekele.NoDrunkText"
+        guard let defaults = UserDefaults(suiteName: groupID) else {
+            print("❌ ERROR: Could not access App Group: \(groupID)")
+            showNoTimeRangesWarning()
+            return
+        }
+        
+        guard let data = defaults.data(forKey: "timeRanges") else {
+            print("❌ ERROR: No time ranges found in UserDefaults")
+            showNoTimeRangesWarning()
+            return
+        }
+        
+        guard let timeRanges = try? JSONDecoder().decode([TimeRange].self, from: data) else {
+            print("❌ ERROR: Could not decode time ranges")
+            showNoTimeRangesWarning()
+            return
+        }
+        
+        print("✅ Found \(timeRanges.count) time ranges:")
+        let calendar = Calendar.current
+        for range in timeRanges {
+            let startHour = calendar.component(.hour, from: range.start)
+            let startMinute = calendar.component(.minute, from: range.start)
+            let endHour = calendar.component(.hour, from: range.end)
+            let endMinute = calendar.component(.minute, from: range.end)
+            
+            print("   • \(startHour):\(String(format: "%02d", startMinute)) - \(endHour):\(String(format: "%02d", endMinute))")
+        }
+        print("=====================\n")
+    }
+    
+    private func showNoTimeRangesWarning() {
+        let alert = UIAlertController(
+            title: "⚠️ Setup Required",
+            message: "Please open the NoDrunkText app first to set up your active time ranges.",
+            preferredStyle: .alert
+        )
+        
+        let openAppAction = UIAlertAction(title: "Open App", style: .default) { _ in
+            if let url = URL(string: "NoDrunkText://") {
+                self.extensionContext?.open(url, completionHandler: nil)
+            }
+        }
+        
+        let cancelAction = UIAlertAction(title: "Cancel", style: .cancel)
+        
+        alert.addAction(openAppAction)
+        alert.addAction(cancelAction)
+        
+        present(alert, animated: true)
     }
 }
