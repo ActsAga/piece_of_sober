@@ -28,6 +28,18 @@ struct TimeRange: Codable {
     var endMinute: Int {
         Calendar.current.component(.minute, from: end)
     }
+    
+    // Add initializer to ensure consistent date handling
+    init(start: Date, end: Date) {
+        let calendar = Calendar.current
+        // Strip out everything except hour and minute
+        let startComponents = calendar.dateComponents([.hour, .minute], from: start)
+        let endComponents = calendar.dateComponents([.hour, .minute], from: end)
+        
+        // Create new dates with just hour and minute
+        self.start = calendar.date(from: startComponents) ?? start
+        self.end = calendar.date(from: endComponents) ?? end
+    }
 }
 
 class ViewController: UIViewController {
@@ -291,6 +303,9 @@ class ViewController: UIViewController {
                 saveTimeRanges()
                 savedTimesTableView.reloadRows(at: [editingIndexPath], with: .automatic)
                 resetTimeRangeEditing()
+                
+                // Verify save was successful
+                loadSavedTimeRanges()
             }
         } else {
             // Add new time range
@@ -299,6 +314,9 @@ class ViewController: UIViewController {
                 saveTimeRanges()
                 savedTimesTableView.reloadData()
                 resetTimeRangePickers()
+                
+                // Verify save was successful
+                loadSavedTimeRanges()
             }
         }
     }
@@ -357,21 +375,37 @@ class ViewController: UIViewController {
     private func loadSavedTimeRanges() {
         print("\n=== Loading Time Ranges ===")
         let groupID = "group.com.danielbekele.NoDrunkText"
+        
         guard let defaults = UserDefaults(suiteName: groupID) else {
-            print("❌ Could not access App Group UserDefaults")
+            print("❌ CRITICAL: Could not access App Group UserDefaults")
+            showAlert(title: "Setup Error", message: "Could not access App Group. Please verify app settings.")
             return
         }
         
-        if let data = defaults.data(forKey: "timeRanges"),
-           let ranges = try? JSONDecoder().decode([TimeRange].self, from: data) {
-            savedTimeRanges = ranges
-            print("✅ Loaded \(ranges.count) time ranges:")
-            for range in ranges {
-                print("   • \(range.startHour):\(String(format: "%02d", range.startMinute)) - \(range.endHour):\(String(format: "%02d", range.endMinute))")
+        // Log all available keys
+        print("📝 Available UserDefaults keys: \(defaults.dictionaryRepresentation().keys)")
+        
+        if let data = defaults.data(forKey: "timeRanges") {
+            do {
+                let decoder = JSONDecoder()
+                savedTimeRanges = try decoder.decode([TimeRange].self, from: data)
+                print("✅ Successfully loaded \(savedTimeRanges.count) time ranges:")
+                for range in savedTimeRanges {
+                    print("   • \(range.startHour):\(String(format: "%02d", range.startMinute)) - \(range.endHour):\(String(format: "%02d", range.endMinute))")
+                }
+                
+                if let rawString = String(data: data, encoding: .utf8) {
+                    print("📄 Raw JSON data:\n\(rawString)")
+                }
+            } catch {
+                print("❌ Error decoding time ranges: \(error.localizedDescription)")
+                showAlert(title: "Load Error", message: "Failed to load saved time ranges: \(error.localizedDescription)")
             }
         } else {
-            print("❌ No time ranges found in UserDefaults")
+            print("ℹ️ No time ranges found in UserDefaults")
+            savedTimeRanges = []
         }
+        
         print("=====================\n")
         savedTimesTableView.reloadData()
     }
@@ -379,21 +413,58 @@ class ViewController: UIViewController {
     private func saveTimeRanges() {
         print("\n=== Saving Time Ranges ===")
         let groupID = "group.com.danielbekele.NoDrunkText"
+        
+        // First verify we can access the app group
         guard let defaults = UserDefaults(suiteName: groupID) else {
-            print("❌ Could not access App Group UserDefaults")
+            print("❌ CRITICAL: Could not access App Group UserDefaults")
+            showAlert(title: "Setup Error", message: "Could not access App Group. Please verify app settings.")
             return
         }
         
-        if let data = try? JSONEncoder().encode(savedTimeRanges) {
+        // Log all available keys before saving
+        print("📝 Current UserDefaults keys before save: \(defaults.dictionaryRepresentation().keys)")
+        
+        do {
+            // Encode the time ranges
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = .prettyPrinted
+            let data = try encoder.encode(savedTimeRanges)
+            
+            // Save to UserDefaults
             defaults.set(data, forKey: "timeRanges")
-            print("✅ Saved \(savedTimeRanges.count) time ranges:")
-            for range in savedTimeRanges {
-                print("   • \(range.startHour):\(String(format: "%02d", range.startMinute)) - \(range.endHour):\(String(format: "%02d", range.endMinute))")
+            defaults.synchronize() // Force immediate save
+            
+            print("✅ Encoded and saved \(savedTimeRanges.count) time ranges")
+            
+            // Verify the save by reading back
+            if let verifyData = defaults.data(forKey: "timeRanges") {
+                let decoder = JSONDecoder()
+                if let verifyRanges = try? decoder.decode([TimeRange].self, from: verifyData) {
+                    print("✅ Verification successful - found \(verifyRanges.count) ranges")
+                    print("📄 Saved ranges:")
+                    for range in verifyRanges {
+                        print("   • \(range.startHour):\(String(format: "%02d", range.startMinute)) - \(range.endHour):\(String(format: "%02d", range.endMinute))")
+                    }
+                    
+                    if let rawString = String(data: verifyData, encoding: .utf8) {
+                        print("📄 Raw JSON data:\n\(rawString)")
+                    }
+                    
+                    // Log all keys after saving
+                    print("📝 Current UserDefaults keys after save: \(defaults.dictionaryRepresentation().keys)")
+                } else {
+                    print("❌ Failed to decode verification data")
+                    throw NSError(domain: "TimeRangeSaving", code: -1, userInfo: [NSLocalizedDescriptionKey: "Verification decode failed"])
+                }
+            } else {
+                print("❌ Could not read back verification data")
+                throw NSError(domain: "TimeRangeSaving", code: -2, userInfo: [NSLocalizedDescriptionKey: "No verification data found"])
             }
-            defaults.synchronize()
-        } else {
-            print("❌ Failed to encode time ranges")
+        } catch {
+            print("❌ Error saving time ranges: \(error.localizedDescription)")
+            showAlert(title: "Save Error", message: "Failed to save time ranges: \(error.localizedDescription)")
         }
+        
         print("=====================\n")
     }
     

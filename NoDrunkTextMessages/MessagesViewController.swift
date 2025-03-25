@@ -7,7 +7,6 @@
 
 import UIKit
 import Messages
-import Contacts
 
 // MARK: - Models
 struct TimeRange: Codable {
@@ -29,11 +28,18 @@ struct TimeRange: Codable {
     var endMinute: Int {
         Calendar.current.component(.minute, from: end)
     }
-}
-
-struct Contact: Codable {
-    let identifier: String
-    var rating: Int
+    
+    // Add initializer to ensure consistent date handling
+    init(start: Date, end: Date) {
+        let calendar = Calendar.current
+        // Strip out everything except hour and minute
+        let startComponents = calendar.dateComponents([.hour, .minute], from: start)
+        let endComponents = calendar.dateComponents([.hour, .minute], from: end)
+        
+        // Create new dates with just hour and minute
+        self.start = calendar.date(from: startComponents) ?? start
+        self.end = calendar.date(from: endComponents) ?? end
+    }
 }
 
 class MessagesViewController: MSMessagesAppViewController {
@@ -43,74 +49,55 @@ class MessagesViewController: MSMessagesAppViewController {
     private var currentConversation: MSConversation?
     private var messageText: String = ""
     private var sendTimer: Timer?
-    private let userDefaults = UserDefaults(suiteName: "group.com.danielbekele.NoDrunkText")
-    private var cooldownSeconds = 10
-    private let contactStore = CNContactStore()
-    
-    // Add new properties for warning handling
+    private let groupID = "group.com.danielbekele.NoDrunkText"
     private var warningAlert: UIAlertController?
+    private var savedTimeRanges: [TimeRange] = []
     
     private var isInActiveTimeRange: Bool {
-        let groupID = "group.com.danielbekele.NoDrunkText"
         guard let defaults = UserDefaults(suiteName: groupID) else {
-            print("⚠️ Could not access App Group UserDefaults with ID: \(groupID)")
+            NSLog("🚨 [NoDrunkText] Failed to access App Group: \(groupID)")
             return false
         }
         
+        // Force synchronize to ensure we have latest data
+        defaults.synchronize()
+        
         guard let data = defaults.data(forKey: "timeRanges") else {
-            print("⚠️ No time ranges data found in UserDefaults")
+            NSLog("🚨 [NoDrunkText] No time ranges found in App Group")
             return false
         }
         
         guard let timeRanges = try? JSONDecoder().decode([TimeRange].self, from: data) else {
-            print("⚠️ Could not decode time ranges data")
+            NSLog("🚨 [NoDrunkText] Failed to decode time ranges data")
             return false
         }
         
-        print("📅 Found \(timeRanges.count) time ranges")
+        NSLog("📅 [NoDrunkText] Found \(timeRanges.count) time ranges")
         
         // Get current time
         let now = Date()
+        let calendar = Calendar.current
+        let currentHour = calendar.component(.hour, from: now)
+        let currentMinute = calendar.component(.minute, from: now)
+        let currentMinutes = currentHour * 60 + currentMinute
+        
+        NSLog("🕒 [NoDrunkText] Current time: \(currentHour):\(String(format: "%02d", currentMinute))")
         
         // Check if current time falls within any active range
         for range in timeRanges {
-            let currentHour = Calendar.current.component(.hour, from: now)
-            let currentMinute = Calendar.current.component(.minute, from: now)
-            
-            let currentMinutes = currentHour * 60 + currentMinute
             let startMinutes = range.startHour * 60 + range.startMinute
             let endMinutes = range.endHour * 60 + range.endMinute
             
-            print("📍 Checking range: \(range.startHour):\(String(format: "%02d", range.startMinute)) - \(range.endHour):\(String(format: "%02d", range.endMinute))")
-            print("🕒 Current time - Hour: \(currentHour), Minute: \(currentMinute)")
+            NSLog("📍 [NoDrunkText] Checking range: \(range.startHour):\(String(format: "%02d", range.startMinute)) - \(range.endHour):\(String(format: "%02d", range.endMinute))")
             
             if currentMinutes >= startMinutes && currentMinutes <= endMinutes {
-                print("✅ Current time is within active range!")
+                NSLog("✅ [NoDrunkText] Current time is within active range!")
                 return true
             }
         }
         
-        print("❌ Current time is not within any active range")
+        NSLog("❌ [NoDrunkText] Current time is not within active range")
         return false
-    }
-    
-    private func getContactRating(for conversation: MSConversation) -> Int? {
-        // Get stored contacts and ratings
-        guard let defaults = userDefaults,
-              let data = defaults.data(forKey: "contacts"),
-              let contacts = try? JSONDecoder().decode([Contact].self, from: data) else {
-            print("No contacts found in UserDefaults")
-            return nil
-        }
-        
-        // For debugging
-        print("Looking for contact rating in conversation")
-        
-        // For simulator testing, use a simple identifier
-        let identifier = "current_conversation"
-        
-        // Find the contact's rating
-        return contacts.first(where: { $0.identifier == identifier })?.rating
     }
     
     // MARK: - UI Elements
@@ -124,74 +111,119 @@ class MessagesViewController: MSMessagesAppViewController {
     
     private let titleLabel: UILabel = {
         let label = UILabel()
-        label.text = "Message Warning Settings"
+        label.text = "Active Time Range Status"
         label.font = .boldSystemFont(ofSize: 24)
         label.textAlignment = .center
         return label
     }()
     
-    private let descriptionLabel: UILabel = {
+    private let statusLabel: UILabel = {
         let label = UILabel()
-        label.text = "Set warning level for this conversation:"
-        label.font = .systemFont(ofSize: 16)
         label.textAlignment = .center
+        label.font = .systemFont(ofSize: 16)
+        label.textColor = .systemGray
         label.numberOfLines = 0
         return label
     }()
     
-    private let buttonStack: UIStackView = {
+    private let timePickerStack: UIStackView = {
         let stack = UIStackView()
-        stack.axis = .vertical
-        stack.spacing = 12
+        stack.axis = .horizontal
+        stack.spacing = 16
         stack.distribution = .fillEqually
         return stack
     }()
     
-    private let noWarningButton: UIButton = {
+    private let startTimePicker: UIDatePicker = {
+        let picker = UIDatePicker()
+        picker.datePickerMode = .time
+        picker.preferredDatePickerStyle = .wheels
+        return picker
+    }()
+    
+    private let endTimePicker: UIDatePicker = {
+        let picker = UIDatePicker()
+        picker.datePickerMode = .time
+        picker.preferredDatePickerStyle = .wheels
+        return picker
+    }()
+    
+    private let addTimeRangeButton: UIButton = {
         let button = UIButton(type: .system)
-        button.setTitle("No Warning", for: .normal)
-        button.backgroundColor = .systemGray5
-        button.setTitleColor(.label, for: .normal)
+        button.setTitle("Add Time Range", for: .normal)
+        button.backgroundColor = .systemBlue
+        button.setTitleColor(.white, for: .normal)
         button.layer.cornerRadius = 12
-        button.titleLabel?.font = .systemFont(ofSize: 16, weight: .medium)
+        button.titleLabel?.font = .boldSystemFont(ofSize: 16)
         return button
     }()
     
-    private let cautionButton: UIButton = {
-        let button = UIButton(type: .system)
-        button.setTitle("Caution ⚠️", for: .normal)
-        button.backgroundColor = .systemYellow.withAlphaComponent(0.2)
-        button.setTitleColor(.systemYellow, for: .normal)
-        button.layer.cornerRadius = 12
-        button.titleLabel?.font = .systemFont(ofSize: 16, weight: .medium)
-        return button
-    }()
-    
-    private let highRiskButton: UIButton = {
-        let button = UIButton(type: .system)
-        button.setTitle("High Risk 🚫", for: .normal)
-        button.backgroundColor = .systemRed.withAlphaComponent(0.2)
-        button.setTitleColor(.systemRed, for: .normal)
-        button.layer.cornerRadius = 12
-        button.titleLabel?.font = .systemFont(ofSize: 16, weight: .medium)
-        return button
-    }()
-    
-    private let statusLabel: UILabel = {
+    private let timeRangesLabel: UILabel = {
         let label = UILabel()
+        label.text = "Active Time Ranges:"
+        label.font = .boldSystemFont(ofSize: 18)
         label.textAlignment = .center
-        label.font = .systemFont(ofSize: 14)
-        label.textColor = .systemGray
         return label
+    }()
+    
+    private let timeRangesStack: UIStackView = {
+        let stack = UIStackView()
+        stack.axis = .vertical
+        stack.spacing = 8
+        stack.alignment = .center
+        return stack
     }()
     
     // MARK: - View Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
-        print("📱 Extension viewDidLoad")
+        NSLog("📱 [NoDrunkText] Extension viewDidLoad")
         setupUI()
-        updateCurrentStatus()
-        checkTimeRangesAndWarnIfNeeded()
+        initializeExtension()
+        loadSavedTimeRanges()
+    }
+    
+    private func initializeExtension() {
+        NSLog("\n=== [NoDrunkText] Initializing extension... ===")
+        NSLog("🔍 [NoDrunkText] App Group ID: \(groupID)")
+        
+        // Force a UserDefaults sync before checking
+        guard let defaults = UserDefaults(suiteName: groupID) else {
+            NSLog("🚨 [NoDrunkText] CRITICAL: Could not access App Group: \(groupID)")
+            showSetupRequiredAlert()
+            return
+        }
+        
+        // Force synchronize and check all available keys
+        defaults.synchronize()
+        let allKeys = defaults.dictionaryRepresentation().keys
+        NSLog("📝 [NoDrunkText] Available UserDefaults keys: \(allKeys)")
+        
+        // Check for time ranges
+        if let data = defaults.data(forKey: "timeRanges") {
+            NSLog("📦 [NoDrunkText] Raw time ranges data found: \(data.count) bytes")
+            
+            if let rawString = String(data: data, encoding: .utf8) {
+                NSLog("📄 [NoDrunkText] Raw time ranges content:\n\(rawString)")
+            }
+            
+            do {
+                let decoder = JSONDecoder()
+                let timeRanges = try decoder.decode([TimeRange].self, from: data)
+                NSLog("✅ [NoDrunkText] Successfully decoded \(timeRanges.count) time ranges")
+                for range in timeRanges {
+                    NSLog("   • \(range.startHour):\(String(format: "%02d", range.startMinute)) - \(range.endHour):\(String(format: "%02d", range.endMinute))")
+                }
+                checkTimeRangesAndWarnIfNeeded()
+                updateCurrentStatus()
+            } catch {
+                NSLog("❌ [NoDrunkText] ERROR: Failed to decode time ranges data - \(error.localizedDescription)")
+                showNoTimeRangesWarning()
+            }
+        } else {
+            NSLog("⚠️ [NoDrunkText] No time ranges data found in UserDefaults")
+            showNoTimeRangesWarning()
+        }
     }
     
     private func setupUI() {
@@ -200,375 +232,252 @@ class MessagesViewController: MSMessagesAppViewController {
         view.addSubview(contentStack)
         contentStack.translatesAutoresizingMaskIntoConstraints = false
         
+        // Add time picker stack
+        timePickerStack.addArrangedSubview(startTimePicker)
+        timePickerStack.addArrangedSubview(endTimePicker)
+        
+        // Add all elements to main stack
         contentStack.addArrangedSubview(titleLabel)
-        contentStack.addArrangedSubview(descriptionLabel)
-        contentStack.addArrangedSubview(buttonStack)
         contentStack.addArrangedSubview(statusLabel)
+        contentStack.addArrangedSubview(timePickerStack)
+        contentStack.addArrangedSubview(addTimeRangeButton)
+        contentStack.addArrangedSubview(timeRangesLabel)
+        contentStack.addArrangedSubview(timeRangesStack)
         
-        buttonStack.addArrangedSubview(noWarningButton)
-        buttonStack.addArrangedSubview(cautionButton)
-        buttonStack.addArrangedSubview(highRiskButton)
-        
+        // Configure constraints
         NSLayoutConstraint.activate([
-            contentStack.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+            contentStack.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 20),
             contentStack.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 24),
             contentStack.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -24),
             
-            buttonStack.heightAnchor.constraint(equalToConstant: 180),
-            noWarningButton.heightAnchor.constraint(equalToConstant: 50),
-            cautionButton.heightAnchor.constraint(equalToConstant: 50),
-            highRiskButton.heightAnchor.constraint(equalToConstant: 50)
+            timePickerStack.heightAnchor.constraint(equalToConstant: 150),
+            addTimeRangeButton.heightAnchor.constraint(equalToConstant: 44),
+            addTimeRangeButton.widthAnchor.constraint(equalTo: contentStack.widthAnchor)
         ])
         
-        noWarningButton.addTarget(self, action: #selector(setNoWarning), for: .touchUpInside)
-        cautionButton.addTarget(self, action: #selector(setCaution), for: .touchUpInside)
-        highRiskButton.addTarget(self, action: #selector(setHighRisk), for: .touchUpInside)
-    }
-    
-    private func updateCurrentStatus() {
-        guard let conversation = currentConversation else { return }
+        // Add button action
+        addTimeRangeButton.addTarget(self, action: #selector(addTimeRangeTapped), for: .touchUpInside)
         
-        if let rating = getContactRating(for: conversation) {
-            switch rating {
-            case 0:
-                statusLabel.text = "Current Status: No Warning"
-            case 1:
-                statusLabel.text = "Current Status: Caution ⚠️"
-            case 2:
-                statusLabel.text = "Current Status: High Risk 🚫"
-            default:
-                statusLabel.text = "Current Status: Not Set"
-            }
-        } else {
-            statusLabel.text = "Current Status: Not Set"
-        }
+        // Set default times
+        let calendar = Calendar.current
+        startTimePicker.date = calendar.date(bySettingHour: 22, minute: 0, second: 0, of: Date()) ?? Date()
+        endTimePicker.date = calendar.date(bySettingHour: 5, minute: 0, second: 0, of: Date()) ?? Date()
     }
     
-    @objc private func setNoWarning() {
-        saveRating(0)
+    @objc private func addTimeRangeTapped() {
+        let timeRange = TimeRange(start: startTimePicker.date, end: endTimePicker.date)
+        savedTimeRanges.append(timeRange)
+        saveTimeRanges()
+        updateTimeRangesDisplay()
         updateCurrentStatus()
-        requestPresentationStyle(.compact)
     }
     
-    @objc private func setCaution() {
-        saveRating(1)
-        updateCurrentStatus()
-        checkAndShowWarning() // Show warning immediately after setting caution
-    }
-    
-    @objc private func setHighRisk() {
-        saveRating(2)
-        updateCurrentStatus()
-        checkAndShowWarning() // Show warning immediately after setting high risk
-    }
-    
-    private func saveRating(_ rating: Int) {
-        guard let conversation = currentConversation else { return }
-        
-        // For simulator testing, use a simple identifier
-        let identifier = "current_conversation"
-        
-        // Create or update the contact rating
-        let contact = Contact(identifier: identifier, rating: rating)
-        
-        // Save to UserDefaults
-        guard let defaults = userDefaults else { return }
-        
-        var contacts: [Contact] = []
-        if let data = defaults.data(forKey: "contacts"),
-           let savedContacts = try? JSONDecoder().decode([Contact].self, from: data) {
-            contacts = savedContacts
-        }
-        
-        // Update or add the contact
-        if let index = contacts.firstIndex(where: { $0.identifier == identifier }) {
-            contacts[index] = contact
-        } else {
-            contacts.append(contact)
-        }
-        
-        // Save back to UserDefaults
-        if let encoded = try? JSONEncoder().encode(contacts) {
-            defaults.set(encoded, forKey: "contacts")
-        }
-    }
-    
-    // MARK: - Warning Display
-    private func showWarningIfNeeded() {
-        guard isInActiveTimeRange else { return }
-        guard let conversation = currentConversation,
-              let rating = getContactRating(for: conversation) else { return }
-        
-        var title = ""
-        var message = ""
-        
-        switch rating {
-        case 1: // Caution
-            title = "⚠️ Caution"
-            message = "You're texting during sensitive hours.\nPlease confirm you want to proceed with messaging."
-        case 2: // High Risk
-            title = "🚫 High Risk Warning"
-            message = "This contact is marked as HIGH RISK.\nYou must wait \(cooldownSeconds) seconds before messaging."
-        default:
+    private func saveTimeRanges() {
+        NSLog("\n=== [NoDrunkText] Saving Time Ranges ===")
+        guard let defaults = UserDefaults(suiteName: groupID) else {
+            NSLog("❌ [NoDrunkText] Could not access App Group")
             return
         }
         
-        let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
-        
-        // Add actions based on rating
-        if rating == 1 {
-            let continueAction = UIAlertAction(title: "Continue", style: .default) { [weak self] _ in
-                self?.requestPresentationStyle(.compact)
+        do {
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = .prettyPrinted
+            let data = try encoder.encode(savedTimeRanges)
+            defaults.set(data, forKey: "timeRanges")
+            defaults.synchronize()
+            
+            NSLog("✅ [NoDrunkText] Saved \(savedTimeRanges.count) time ranges")
+            if let rawString = String(data: data, encoding: .utf8) {
+                NSLog("📄 [NoDrunkText] Raw data: \(rawString)")
             }
-            alert.addAction(continueAction)
-        } else if rating == 2 {
-            startCooldownTimer()
+        } catch {
+            NSLog("❌ [NoDrunkText] Failed to save time ranges: \(error.localizedDescription)")
         }
-        
-        // Add cancel action
-        let cancelAction = UIAlertAction(title: "Cancel", style: .cancel) { [weak self] _ in
-            self?.requestPresentationStyle(.compact)
-        }
-        alert.addAction(cancelAction)
-        
-        // Present the alert
-        present(alert, animated: true)
-        warningAlert = alert
     }
     
-    private func startCooldownTimer() {
-        cooldownSeconds = 10
-        
-        // Update the warning message with countdown
-        Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] timer in
-            guard let self = self else {
-                timer.invalidate()
-                return
-            }
-            
-            self.cooldownSeconds -= 1
-            
-            if let alert = self.warningAlert {
-                alert.message = "This contact is marked as HIGH RISK.\nPlease wait until you're outside sensitive hours to message them.\n\nCooldown: \(self.cooldownSeconds) seconds"
-            }
-            
-            if self.cooldownSeconds <= 0 {
-                timer.invalidate()
-                self.warningAlert?.dismiss(animated: true)
-                self.warningAlert = nil
-                self.requestPresentationStyle(.compact)
-            }
+    private func loadSavedTimeRanges() {
+        NSLog("\n=== [NoDrunkText] Loading Time Ranges ===")
+        guard let defaults = UserDefaults(suiteName: groupID) else {
+            NSLog("❌ [NoDrunkText] Could not access App Group")
+            return
         }
+        
+        if let data = defaults.data(forKey: "timeRanges"),
+           let ranges = try? JSONDecoder().decode([TimeRange].self, from: data) {
+            savedTimeRanges = ranges
+            NSLog("✅ [NoDrunkText] Loaded \(ranges.count) time ranges")
+            updateTimeRangesDisplay()
+        }
+    }
+    
+    private func updateTimeRangesDisplay() {
+        // Clear existing time range views
+        timeRangesStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
+        
+        // Add time range labels
+        for (index, range) in savedTimeRanges.enumerated() {
+            let container = UIView()
+            container.backgroundColor = .systemGray6
+            container.layer.cornerRadius = 8
+            
+            let timeLabel = UILabel()
+            timeLabel.text = String(format: "%02d:%02d - %02d:%02d", 
+                                  range.startHour, range.startMinute,
+                                  range.endHour, range.endMinute)
+            timeLabel.font = .systemFont(ofSize: 16)
+            
+            let deleteButton = UIButton(type: .system)
+            deleteButton.setImage(UIImage(systemName: "trash"), for: .normal)
+            deleteButton.tintColor = .systemRed
+            deleteButton.tag = index
+            deleteButton.addTarget(self, action: #selector(deleteTimeRange(_:)), for: .touchUpInside)
+            
+            container.addSubview(timeLabel)
+            container.addSubview(deleteButton)
+            
+            timeLabel.translatesAutoresizingMaskIntoConstraints = false
+            deleteButton.translatesAutoresizingMaskIntoConstraints = false
+            
+            NSLayoutConstraint.activate([
+                container.heightAnchor.constraint(equalToConstant: 40),
+                container.widthAnchor.constraint(equalTo: timeRangesStack.widthAnchor),
+                
+                timeLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 16),
+                timeLabel.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+                
+                deleteButton.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -16),
+                deleteButton.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+                deleteButton.widthAnchor.constraint(equalToConstant: 44),
+                deleteButton.heightAnchor.constraint(equalToConstant: 44)
+            ])
+            
+            timeRangesStack.addArrangedSubview(container)
+        }
+    }
+    
+    @objc private func deleteTimeRange(_ sender: UIButton) {
+        let index = sender.tag
+        guard index < savedTimeRanges.count else { return }
+        
+        savedTimeRanges.remove(at: index)
+        saveTimeRanges()
+        updateTimeRangesDisplay()
+        updateCurrentStatus()
+    }
+    
+    private func showWarningIfNeeded() {
+        guard isInActiveTimeRange else { return }
+        
+        let alert = UIAlertController(
+            title: "⚠️ Warning",
+            message: "You're attempting to send a message during your designated cautionary hours. Are you sure you want to proceed?",
+            preferredStyle: .alert
+        )
+        
+        let proceedAction = UIAlertAction(title: "Yes, I'm Sure", style: .destructive) { [weak self] _ in
+            self?.warningAlert = nil
+        }
+        
+        let cancelAction = UIAlertAction(title: "Cancel", style: .cancel) { [weak self] _ in
+            self?.warningAlert = nil
+        }
+        
+        alert.addAction(proceedAction)
+        alert.addAction(cancelAction)
+        
+        warningAlert = alert
+        present(alert, animated: true)
     }
     
     // MARK: - Conversation Handling
     override func willBecomeActive(with conversation: MSConversation) {
         super.willBecomeActive(with: conversation)
-        print("\n=== Extension Becoming Active ===")
+        NSLog("\n=== [NoDrunkText] Extension Becoming Active ===")
         currentConversation = conversation
         
-        checkTimeRangesAndWarnIfNeeded()
+        // Force a UserDefaults sync and reinitialize
+        if let defaults = UserDefaults(suiteName: groupID) {
+            defaults.synchronize()
+            NSLog("🔄 [NoDrunkText] Synchronized UserDefaults")
+            
+            // Check for time ranges immediately
+            if let data = defaults.data(forKey: "timeRanges") {
+                NSLog("📦 [NoDrunkText] Found time ranges data: \(data.count) bytes")
+                
+                if let rawString = String(data: data, encoding: .utf8) {
+                    NSLog("📄 [NoDrunkText] Time ranges content: \(rawString)")
+                }
+                
+                if let timeRanges = try? JSONDecoder().decode([TimeRange].self, from: data) {
+                    NSLog("✅ [NoDrunkText] Successfully decoded \(timeRanges.count) time ranges")
+                    checkTimeRangesAndWarnIfNeeded()
+                } else {
+                    NSLog("❌ [NoDrunkText] Failed to decode time ranges")
+                    showNoTimeRangesWarning()
+                }
+            } else {
+                NSLog("⚠️ [NoDrunkText] No time ranges available")
+                showNoTimeRangesWarning()
+            }
+        }
+        
         updateCurrentStatus()
-        
-        if isInActiveTimeRange, 
-           let rating = getContactRating(for: conversation),
-           rating > 0 {
-            showWarningIfNeeded()
-        }
-    }
-    
-    override func didResignActive(with conversation: MSConversation) {
-        super.didResignActive(with: conversation)
-        print("\n=== Extension Resigning Active ===")
-        print("• Cleaning up resources")
-        print("• Saving current state")
-        
-        // Clean up
-        messageText = ""
-        currentMessage = nil
-        sendTimer?.invalidate()
-        sendTimer = nil
-    }
-    
-    // MARK: - Message Handling
-    override func didStartSending(_ message: MSMessage, conversation: MSConversation) {
-        super.didStartSending(message, conversation: conversation)
-        
-        // Check if we're in active hours and have a rating
-        guard isInActiveTimeRange,
-              let rating = getContactRating(for: conversation),
-              rating > 0 else {
-            return
-        }
-        
-        // Show warning alert
-        let title = rating == 2 ? "🚫 High Risk Warning" : "⚠️ Caution"
-        let message = rating == 2 ?
-            "This contact is marked as HIGH RISK.\nPlease wait until you're outside sensitive hours." :
-            "You're sending a message during sensitive hours.\nPlease confirm you want to proceed."
-        
-        let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
-        
-        // Add continue action for caution only
-        if rating == 1 {
-            let continueAction = UIAlertAction(title: "Send Anyway", style: .default)
-            alert.addAction(continueAction)
-        }
-        
-        // Add cancel action
-        let cancelAction = UIAlertAction(title: "Cancel", style: .cancel)
-        alert.addAction(cancelAction)
-        
-        // Present the alert
-        present(alert, animated: true)
-        warningAlert = alert
-    }
-    
-    override func didReceive(_ message: MSMessage, conversation: MSConversation) {
-        super.didReceive(message, conversation: conversation)
-        
-        // Called when a message arrives that was generated by another instance of this
-        // extension on a remote device.
-        
-        // Use this method to trigger UI updates in response to the message.
-    }
-    
-    override func didCancelSending(_ message: MSMessage, conversation: MSConversation) {
-        super.didCancelSending(message, conversation: conversation)
-        
-        // Dismiss warning if user cancels sending
-        warningAlert?.dismiss(animated: true)
-        warningAlert = nil
-    }
-    
-    // MARK: - Presentation Style Handling
-    override func willTransition(to presentationStyle: MSMessagesAppPresentationStyle) {
-        super.willTransition(to: presentationStyle)
-        
-        if presentationStyle == .expanded {
-            checkAndShowWarning()
-        }
-    }
-    
-    override func didTransition(to presentationStyle: MSMessagesAppPresentationStyle) {
-        super.didTransition(to: presentationStyle)
-        
-        // Update UI based on presentation style
-        if presentationStyle == .compact {
-            // Dismiss any existing warning when going to compact mode
-            warningAlert?.dismiss(animated: true)
-            warningAlert = nil
-        }
-    }
-    
-    private func checkAndShowWarning() {
-        guard isInActiveTimeRange else {
-            print("Not in active time range")
-            return
-        }
-        
-        guard let conversation = currentConversation,
-              let rating = getContactRating(for: conversation) else {
-            print("No conversation or rating found")
-            return
-        }
-        
-        print("Checking warning for rating: \(rating)")
-        
-        let alert = UIAlertController(
-            title: rating == 1 ? "⚠️ Caution" : "🚫 High Risk",
-            message: getWarningMessage(for: rating),
-            preferredStyle: .alert
-        )
-        
-        // Add "I Understand" action for Caution
-        if rating == 1 {
-            let continueAction = UIAlertAction(title: "I Understand", style: .default) { [weak self] _ in
-                self?.requestPresentationStyle(.compact)
-            }
-            alert.addAction(continueAction)
-        }
-        
-        // Add "Wait" action for High Risk
-        if rating == 2 {
-            let waitAction = UIAlertAction(title: "Wait \(cooldownSeconds) seconds", style: .destructive) { [weak self] _ in
-                self?.startCooldownTimer()
-            }
-            alert.addAction(waitAction)
-        }
-        
-        // Add cancel action
-        let cancelAction = UIAlertAction(title: "Cancel", style: .cancel) { [weak self] _ in
-            self?.requestPresentationStyle(.compact)
-        }
-        alert.addAction(cancelAction)
-        
-        // Present the alert
-        present(alert, animated: true)
-        warningAlert = alert
-    }
-    
-    private func getWarningMessage(for rating: Int) -> String {
-        switch rating {
-        case 1:
-            return """
-                You're texting during sensitive hours (currently \(getCurrentTimeString())).
-                
-                Are you sure you want to send messages to this contact?
-                """
-        case 2:
-            return """
-                ⚠️ HIGH RISK CONTACT - COOLING DOWN PERIOD REQUIRED ⚠️
-                
-                Current time: \(getCurrentTimeString())
-                This contact is marked as HIGH RISK.
-                You must wait \(cooldownSeconds) seconds before sending.
-                """
-        default:
-            return ""
-        }
-    }
-    
-    private func getCurrentTimeString() -> String {
-        let formatter = DateFormatter()
-        formatter.timeStyle = .short
-        return formatter.string(from: Date())
     }
     
     private func checkTimeRangesAndWarnIfNeeded() {
-        print("\n=== Time Range Check ===")
-        print("📅 Checking time ranges in App Group...")
+        NSLog("\n=== [NoDrunkText] Time Range Check ===")
+        NSLog("📅 [NoDrunkText] Checking time ranges in App Group...")
         
-        let groupID = "group.com.danielbekele.NoDrunkText"
         guard let defaults = UserDefaults(suiteName: groupID) else {
-            print("❌ ERROR: Could not access App Group: \(groupID)")
+            NSLog("❌ [NoDrunkText] ERROR: Could not access App Group: \(groupID)")
             showNoTimeRangesWarning()
             return
         }
         
+        // Force synchronize and check all available keys
+        defaults.synchronize()
+        NSLog("📝 [NoDrunkText] Available UserDefaults keys: \(defaults.dictionaryRepresentation().keys)")
+        
         guard let data = defaults.data(forKey: "timeRanges") else {
-            print("❌ ERROR: No time ranges found in UserDefaults")
+            NSLog("❌ [NoDrunkText] ERROR: No time ranges found in UserDefaults")
             showNoTimeRangesWarning()
             return
+        }
+        
+        NSLog("📦 [NoDrunkText] Raw time ranges data: \(data.count) bytes")
+        if let rawString = String(data: data, encoding: .utf8) {
+            NSLog("📄 [NoDrunkText] Raw time ranges content: \(rawString)")
         }
         
         guard let timeRanges = try? JSONDecoder().decode([TimeRange].self, from: data) else {
-            print("❌ ERROR: Could not decode time ranges")
+            NSLog("❌ [NoDrunkText] ERROR: Could not decode time ranges")
             showNoTimeRangesWarning()
             return
         }
         
-        print("✅ Found \(timeRanges.count) time ranges:")
+        NSLog("✅ [NoDrunkText] Found \(timeRanges.count) time ranges:")
         let calendar = Calendar.current
+        let now = Date()
+        let currentHour = calendar.component(.hour, from: now)
+        let currentMinute = calendar.component(.minute, from: now)
+        
+        NSLog("🕒 [NoDrunkText] Current time: \(currentHour):\(String(format: "%02d", currentMinute))")
+        
         for range in timeRanges {
-            let startHour = calendar.component(.hour, from: range.start)
-            let startMinute = calendar.component(.minute, from: range.start)
-            let endHour = calendar.component(.hour, from: range.end)
-            let endMinute = calendar.component(.minute, from: range.end)
+            NSLog("   • [NoDrunkText] Range: \(range.startHour):\(String(format: "%02d", range.startMinute)) - \(range.endHour):\(String(format: "%02d", range.endMinute))")
             
-            print("   • \(startHour):\(String(format: "%02d", startMinute)) - \(endHour):\(String(format: "%02d", endMinute))")
+            let startMinutes = range.startHour * 60 + range.startMinute
+            let endMinutes = range.endHour * 60 + range.endMinute
+            let currentMinutes = currentHour * 60 + currentMinute
+            
+            NSLog("   📊 [NoDrunkText] Minutes comparison - Current: \(currentMinutes), Start: \(startMinutes), End: \(endMinutes)")
+            
+            if currentMinutes >= startMinutes && currentMinutes <= endMinutes {
+                NSLog("   ✅ [NoDrunkText] Time is within this range!")
+            } else {
+                NSLog("   ❌ [NoDrunkText] Time is outside this range")
+            }
         }
-        print("=====================\n")
     }
     
     private func showNoTimeRangesWarning() {
@@ -578,16 +487,36 @@ class MessagesViewController: MSMessagesAppViewController {
             preferredStyle: .alert
         )
         
-        let openAppAction = UIAlertAction(title: "Open App", style: .default) { _ in
+        let openAppAction = UIAlertAction(title: "Open App", style: .default) { [weak self] _ in
             if let url = URL(string: "NoDrunkText://") {
-                self.extensionContext?.open(url, completionHandler: nil)
+                self?.extensionContext?.open(url, completionHandler: nil)
             }
         }
         
-        let cancelAction = UIAlertAction(title: "Cancel", style: .cancel)
+        alert.addAction(openAppAction)
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        
+        // Prevent multiple alerts
+        if self.presentedViewController == nil {
+            present(alert, animated: true)
+        }
+    }
+    
+    private func showSetupRequiredAlert() {
+        let alert = UIAlertController(
+            title: "Setup Required",
+            message: "Please open the NoDrunkText app first to complete the initial setup.",
+            preferredStyle: .alert
+        )
+        
+        let openAppAction = UIAlertAction(title: "Open App", style: .default) { [weak self] _ in
+            if let url = URL(string: "NoDrunkText://") {
+                self?.extensionContext?.open(url, completionHandler: nil)
+            }
+        }
         
         alert.addAction(openAppAction)
-        alert.addAction(cancelAction)
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
         
         present(alert, animated: true)
     }
