@@ -11,8 +11,10 @@ import Contacts
 
 // MARK: - Models
 struct TimeRange: Codable {
-    let start: Date
-    let end: Date
+    let startHour: Int
+    let startMinute: Int
+    let endHour: Int
+    let endMinute: Int
 }
 
 struct Contact: Codable {
@@ -27,133 +29,149 @@ class MessagesViewController: MSMessagesAppViewController {
     private var currentConversation: MSConversation?
     private var messageText: String = ""
     private var sendTimer: Timer?
-    private let userDefaults = UserDefaults(suiteName: "group.NoDrunkText")!
+    private let userDefaults = UserDefaults(suiteName: "group.com.danielbekele.NoDrunkText")
     private var cooldownSeconds = 10
+    private let contactStore = CNContactStore()
+    
+    // Add new properties for warning handling
+    private var warningAlert: UIAlertController?
     
     private var isInActiveTimeRange: Bool {
-        guard let data = userDefaults.data(forKey: "savedTimeRanges"),
-              let timeRanges = try? JSONDecoder().decode([TimeRange].self, from: data) else {
+        // Get active time ranges from UserDefaults
+        guard let defaults = userDefaults else {
+            print("DEBUG: UserDefaults not available")
             return false
         }
         
-        let now = Date()
-        let calendar = Calendar.current
-        let currentComponents = calendar.dateComponents([.hour, .minute], from: now)
-        let currentMinutes = (currentComponents.hour ?? 0) * 60 + (currentComponents.minute ?? 0)
+        print("DEBUG: Checking UserDefaults with suite: \(defaults.suiteName ?? "nil")")
         
-        return timeRanges.contains { range in
-            let startComponents = calendar.dateComponents([.hour, .minute], from: range.start)
-            let endComponents = calendar.dateComponents([.hour, .minute], from: range.end)
-            let startMinutes = (startComponents.hour ?? 0) * 60 + (startComponents.minute ?? 0)
-            let endMinutes = (endComponents.hour ?? 0) * 60 + (endComponents.minute ?? 0)
+        guard let data = defaults.data(forKey: "timeRanges") else {
+            print("DEBUG: No timeRanges data found in UserDefaults")
+            return false
+        }
+        
+        guard let timeRanges = try? JSONDecoder().decode([TimeRange].self, from: data) else {
+            print("DEBUG: Failed to decode timeRanges data")
+            return false
+        }
+        
+        print("DEBUG: Found \(timeRanges.count) time ranges")
+        
+        // Get current time components
+        let calendar = Calendar.current
+        let now = Date()
+        let hour = calendar.component(.hour, from: now)
+        let minute = calendar.component(.minute, from: now)
+        let currentMinutes = hour * 60 + minute
+        
+        print("DEBUG: Current time - \(hour):\(minute) (\(currentMinutes) minutes)")
+        
+        // Check if current time falls within any active range
+        for range in timeRanges {
+            let startMinutes = range.startHour * 60 + range.startMinute
+            let endMinutes = range.endHour * 60 + range.endMinute
             
-            if endMinutes <= startMinutes {
-                // Time range crosses midnight
-                return currentMinutes >= startMinutes || currentMinutes <= endMinutes
-            } else {
-                return currentMinutes >= startMinutes && currentMinutes <= endMinutes
+            print("DEBUG: Checking range \(range.startHour):\(range.startMinute) - \(range.endHour):\(range.endMinute)")
+            print("DEBUG: \(startMinutes) <= \(currentMinutes) <= \(endMinutes)")
+            
+            if currentMinutes >= startMinutes && currentMinutes <= endMinutes {
+                print("DEBUG: Current time is within active range!")
+                return true
             }
         }
+        
+        print("DEBUG: Current time is not within any active range")
+        return false
     }
     
-    private func getContactRating(for phoneNumber: String) -> Int? {
-        guard let data = userDefaults.data(forKey: "contacts"),
+    private func getContactRating(for conversation: MSConversation) -> Int? {
+        // Get stored contacts and ratings
+        guard let defaults = userDefaults,
+              let data = defaults.data(forKey: "contacts"),
               let contacts = try? JSONDecoder().decode([Contact].self, from: data) else {
+            print("No contacts found in UserDefaults")
             return nil
         }
-        return contacts.first { $0.identifier == phoneNumber }?.rating
+        
+        // For debugging
+        print("Looking for contact rating in conversation")
+        
+        // For simulator testing, use a simple identifier
+        let identifier = "current_conversation"
+        
+        // Find the contact's rating
+        return contacts.first(where: { $0.identifier == identifier })?.rating
     }
     
     // MARK: - UI Elements
-    private let messageInputView: UIView = {
-        let view = UIView()
-        view.backgroundColor = .systemBackground
-        return view
+    private let contentStack: UIStackView = {
+        let stack = UIStackView()
+        stack.axis = .vertical
+        stack.spacing = 20
+        stack.alignment = .center
+        return stack
     }()
     
-    private let messageTextView: UITextView = {
-        let textView = UITextView()
-        textView.font = .systemFont(ofSize: 16)
-        textView.layer.cornerRadius = 12
-        textView.layer.borderWidth = 1
-        textView.layer.borderColor = UIColor.systemGray4.cgColor
-        return textView
-    }()
-    
-    private let sendMessageButton: UIButton = {
-        let button = UIButton(type: .system)
-        button.setTitle("Send Message", for: .normal)
-        button.backgroundColor = .systemBlue
-        button.setTitleColor(.white, for: .normal)
-        button.layer.cornerRadius = 12
-        button.titleLabel?.font = .boldSystemFont(ofSize: 16)
-        return button
-    }()
-    
-    private let warningView: UIView = {
-        let view = UIView()
-        view.backgroundColor = .systemRed.withAlphaComponent(0.15)
-        view.layer.cornerRadius = 16
-        view.layer.borderWidth = 1
-        view.layer.borderColor = UIColor.systemRed.withAlphaComponent(0.3).cgColor
-        view.isHidden = true
-        return view
-    }()
-    
-    private let warningLabel: UILabel = {
+    private let titleLabel: UILabel = {
         let label = UILabel()
-        label.text = "🚫 Late Night Text Warning 🚫"
-        label.textColor = .systemRed
+        label.text = "Message Warning Settings"
+        label.font = .boldSystemFont(ofSize: 24)
         label.textAlignment = .center
-        label.numberOfLines = 0
-        label.font = .boldSystemFont(ofSize: 20)
         return label
     }()
     
-    private let warningDescription: UILabel = {
+    private let descriptionLabel: UILabel = {
         let label = UILabel()
-        label.text = "It's late and this contact is marked as high-risk.\nAre you sure you want to send this message?"
-        label.textColor = .systemGray
+        label.text = "Set warning level for this conversation:"
+        label.font = .systemFont(ofSize: 16)
         label.textAlignment = .center
         label.numberOfLines = 0
-        label.font = .systemFont(ofSize: 16)
         return label
     }()
     
     private let buttonStack: UIStackView = {
         let stack = UIStackView()
-        stack.axis = .horizontal
-        stack.spacing = 16
+        stack.axis = .vertical
+        stack.spacing = 12
         stack.distribution = .fillEqually
         return stack
     }()
     
-    private let sendButton: UIButton = {
+    private let noWarningButton: UIButton = {
         let button = UIButton(type: .system)
-        button.setTitle("Send Anyway", for: .normal)
-        button.setTitleColor(.white, for: .normal)
-        button.backgroundColor = .systemRed
+        button.setTitle("No Warning", for: .normal)
+        button.backgroundColor = .systemGray5
+        button.setTitleColor(.label, for: .normal)
         button.layer.cornerRadius = 12
-        button.titleLabel?.font = .boldSystemFont(ofSize: 16)
+        button.titleLabel?.font = .systemFont(ofSize: 16, weight: .medium)
         return button
     }()
     
-    private let cancelButton: UIButton = {
+    private let cautionButton: UIButton = {
         let button = UIButton(type: .system)
-        button.setTitle("Cancel", for: .normal)
+        button.setTitle("Caution ⚠️", for: .normal)
+        button.backgroundColor = .systemYellow.withAlphaComponent(0.2)
+        button.setTitleColor(.systemYellow, for: .normal)
+        button.layer.cornerRadius = 12
+        button.titleLabel?.font = .systemFont(ofSize: 16, weight: .medium)
+        return button
+    }()
+    
+    private let highRiskButton: UIButton = {
+        let button = UIButton(type: .system)
+        button.setTitle("High Risk 🚫", for: .normal)
+        button.backgroundColor = .systemRed.withAlphaComponent(0.2)
         button.setTitleColor(.systemRed, for: .normal)
-        button.backgroundColor = .systemRed.withAlphaComponent(0.1)
         button.layer.cornerRadius = 12
-        button.titleLabel?.font = .boldSystemFont(ofSize: 16)
+        button.titleLabel?.font = .systemFont(ofSize: 16, weight: .medium)
         return button
     }()
     
-    private let cooldownLabel: UILabel = {
+    private let statusLabel: UILabel = {
         let label = UILabel()
-        label.textColor = .systemGray
         label.textAlignment = .center
         label.font = .systemFont(ofSize: 14)
-        label.isHidden = true
+        label.textColor = .systemGray
         return label
     }()
     
@@ -161,265 +179,245 @@ class MessagesViewController: MSMessagesAppViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
-        setupMessageInput()
+        updateCurrentStatus()
     }
     
     private func setupUI() {
         view.backgroundColor = .systemBackground
         
-        // Setup warning view and its subviews
-        view.addSubview(warningView)
-        warningView.addSubview(warningLabel)
-        warningView.addSubview(warningDescription)
-        warningView.addSubview(buttonStack)
-        warningView.addSubview(cooldownLabel)
+        view.addSubview(contentStack)
+        contentStack.translatesAutoresizingMaskIntoConstraints = false
         
-        buttonStack.addArrangedSubview(cancelButton)
-        buttonStack.addArrangedSubview(sendButton)
+        contentStack.addArrangedSubview(titleLabel)
+        contentStack.addArrangedSubview(descriptionLabel)
+        contentStack.addArrangedSubview(buttonStack)
+        contentStack.addArrangedSubview(statusLabel)
         
-        // Configure constraints for warning view
-        warningView.translatesAutoresizingMaskIntoConstraints = false
-        warningLabel.translatesAutoresizingMaskIntoConstraints = false
-        warningDescription.translatesAutoresizingMaskIntoConstraints = false
-        buttonStack.translatesAutoresizingMaskIntoConstraints = false
+        buttonStack.addArrangedSubview(noWarningButton)
+        buttonStack.addArrangedSubview(cautionButton)
+        buttonStack.addArrangedSubview(highRiskButton)
         
         NSLayoutConstraint.activate([
-            // Warning view constraints
-            warningView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-            warningView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
-            warningView.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+            contentStack.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+            contentStack.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 24),
+            contentStack.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -24),
             
-            // Warning label constraints
-            warningLabel.topAnchor.constraint(equalTo: warningView.topAnchor, constant: 24),
-            warningLabel.leadingAnchor.constraint(equalTo: warningView.leadingAnchor, constant: 16),
-            warningLabel.trailingAnchor.constraint(equalTo: warningView.trailingAnchor, constant: -16),
-            
-            // Description constraints
-            warningDescription.topAnchor.constraint(equalTo: warningLabel.bottomAnchor, constant: 16),
-            warningDescription.leadingAnchor.constraint(equalTo: warningView.leadingAnchor, constant: 16),
-            warningDescription.trailingAnchor.constraint(equalTo: warningView.trailingAnchor, constant: -16),
-            
-            // Button stack constraints
-            buttonStack.topAnchor.constraint(equalTo: warningDescription.bottomAnchor, constant: 24),
-            buttonStack.leadingAnchor.constraint(equalTo: warningView.leadingAnchor, constant: 16),
-            buttonStack.trailingAnchor.constraint(equalTo: warningView.trailingAnchor, constant: -16),
-            buttonStack.bottomAnchor.constraint(equalTo: warningView.bottomAnchor, constant: -24),
-            buttonStack.heightAnchor.constraint(equalToConstant: 50),
-            
-            // Cooldown label constraints
-            cooldownLabel.topAnchor.constraint(equalTo: buttonStack.bottomAnchor, constant: 8),
-            cooldownLabel.leadingAnchor.constraint(equalTo: warningView.leadingAnchor, constant: 16),
-            cooldownLabel.trailingAnchor.constraint(equalTo: warningView.trailingAnchor, constant: -16),
-            cooldownLabel.bottomAnchor.constraint(equalTo: warningView.bottomAnchor, constant: -8)
+            buttonStack.heightAnchor.constraint(equalToConstant: 180),
+            noWarningButton.heightAnchor.constraint(equalToConstant: 50),
+            cautionButton.heightAnchor.constraint(equalToConstant: 50),
+            highRiskButton.heightAnchor.constraint(equalToConstant: 50)
         ])
         
-        // Add button actions
-        sendButton.addTarget(self, action: #selector(handleSendAnyway), for: .touchUpInside)
-        cancelButton.addTarget(self, action: #selector(handleCancel), for: .touchUpInside)
+        noWarningButton.addTarget(self, action: #selector(setNoWarning), for: .touchUpInside)
+        cautionButton.addTarget(self, action: #selector(setCaution), for: .touchUpInside)
+        highRiskButton.addTarget(self, action: #selector(setHighRisk), for: .touchUpInside)
     }
     
-    private func setupMessageInput() {
-        // Add message input view
-        view.addSubview(messageInputView)
-        messageInputView.addSubview(messageTextView)
-        messageInputView.addSubview(sendMessageButton)
+    private func updateCurrentStatus() {
+        guard let conversation = currentConversation else { return }
         
-        messageInputView.translatesAutoresizingMaskIntoConstraints = false
-        messageTextView.translatesAutoresizingMaskIntoConstraints = false
-        sendMessageButton.translatesAutoresizingMaskIntoConstraints = false
-        
-        NSLayoutConstraint.activate([
-            messageInputView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            messageInputView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            messageInputView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            messageInputView.heightAnchor.constraint(equalToConstant: 120),
-            
-            messageTextView.leadingAnchor.constraint(equalTo: messageInputView.leadingAnchor, constant: 16),
-            messageTextView.trailingAnchor.constraint(equalTo: messageInputView.trailingAnchor, constant: -16),
-            messageTextView.topAnchor.constraint(equalTo: messageInputView.topAnchor, constant: 8),
-            messageTextView.heightAnchor.constraint(equalToConstant: 60),
-            
-            sendMessageButton.leadingAnchor.constraint(equalTo: messageInputView.leadingAnchor, constant: 16),
-            sendMessageButton.trailingAnchor.constraint(equalTo: messageInputView.trailingAnchor, constant: -16),
-            sendMessageButton.topAnchor.constraint(equalTo: messageTextView.bottomAnchor, constant: 8),
-            sendMessageButton.heightAnchor.constraint(equalToConstant: 44)
-        ])
-        
-        sendMessageButton.addTarget(self, action: #selector(handleSendMessage), for: .touchUpInside)
-    }
-    
-    // MARK: - Button Actions
-    @objc private func handleSendMessage() {
-        guard let text = messageTextView.text, !text.isEmpty else { return }
-        messageText = text
-        
-        // Check if we're in active time range
-        guard isInActiveTimeRange else {
-            // Not in active time range, send message normally
-            sendMessageNormally()
-            return
-        }
-        
-        // Get recipient's phone number
-        guard let conversation = currentConversation,
-              let recipient = conversation.remoteParticipantIdentifiers.first?.uuidString else {
-            sendMessageNormally()
-            return
-        }
-        
-        // Check contact rating
-        if let rating = getContactRating(for: recipient) {
+        if let rating = getContactRating(for: conversation) {
             switch rating {
-            case 1: // Caution
-                showCautionWarning()
-            case 2: // No
-                showNoWarning()
+            case 0:
+                statusLabel.text = "Current Status: No Warning"
+            case 1:
+                statusLabel.text = "Current Status: Caution ⚠️"
+            case 2:
+                statusLabel.text = "Current Status: High Risk 🚫"
             default:
-                sendMessageNormally()
+                statusLabel.text = "Current Status: Not Set"
             }
         } else {
-            // No rating, send normally
-            sendMessageNormally()
+            statusLabel.text = "Current Status: Not Set"
         }
     }
     
-    private func showCautionWarning() {
-        warningView.backgroundColor = .systemYellow.withAlphaComponent(0.15)
-        warningView.layer.borderColor = UIColor.systemYellow.withAlphaComponent(0.3).cgColor
-        warningLabel.text = "⚠️ Caution Warning ⚠️"
-        warningLabel.textColor = .systemYellow
-        warningDescription.text = "You marked this contact as requiring caution.\nAre you sure you want to send this message?"
-        sendButton.backgroundColor = .systemYellow
-        sendButton.setTitleColor(.white, for: .normal)
-        cancelButton.setTitleColor(.systemYellow, for: .normal)
-        cancelButton.backgroundColor = .systemYellow.withAlphaComponent(0.1)
-        cooldownLabel.isHidden = true
-        showWarning()
+    @objc private func setNoWarning() {
+        saveRating(0)
+        updateCurrentStatus()
+        requestPresentationStyle(.compact)
     }
     
-    private func showNoWarning() {
-        warningView.backgroundColor = .systemRed.withAlphaComponent(0.15)
-        warningView.layer.borderColor = UIColor.systemRed.withAlphaComponent(0.3).cgColor
-        warningLabel.text = "🚫 High Risk Warning 🚫"
-        warningLabel.textColor = .systemRed
-        warningDescription.text = "You marked this contact as high-risk.\nThe message will be sent after a 10-second cooldown."
-        sendButton.backgroundColor = .systemRed
-        sendButton.setTitleColor(.white, for: .normal)
-        cancelButton.setTitleColor(.systemRed, for: .normal)
-        cancelButton.backgroundColor = .systemRed.withAlphaComponent(0.1)
-        cooldownLabel.isHidden = false
-        cooldownLabel.text = "Sending in \(cooldownSeconds) seconds..."
-        showWarning()
-        startCooldownTimer()
+    @objc private func setCaution() {
+        saveRating(1)
+        updateCurrentStatus()
+        checkAndShowWarning() // Show warning immediately after setting caution
+    }
+    
+    @objc private func setHighRisk() {
+        saveRating(2)
+        updateCurrentStatus()
+        checkAndShowWarning() // Show warning immediately after setting high risk
+    }
+    
+    private func saveRating(_ rating: Int) {
+        guard let conversation = currentConversation else { return }
+        
+        // For simulator testing, use a simple identifier
+        let identifier = "current_conversation"
+        
+        // Create or update the contact rating
+        let contact = Contact(identifier: identifier, rating: rating)
+        
+        // Save to UserDefaults
+        guard let defaults = userDefaults else { return }
+        
+        var contacts: [Contact] = []
+        if let data = defaults.data(forKey: "contacts"),
+           let savedContacts = try? JSONDecoder().decode([Contact].self, from: data) {
+            contacts = savedContacts
+        }
+        
+        // Update or add the contact
+        if let index = contacts.firstIndex(where: { $0.identifier == identifier }) {
+            contacts[index] = contact
+        } else {
+            contacts.append(contact)
+        }
+        
+        // Save back to UserDefaults
+        if let encoded = try? JSONEncoder().encode(contacts) {
+            defaults.set(encoded, forKey: "contacts")
+        }
+    }
+    
+    // MARK: - Warning Display
+    private func showWarningIfNeeded() {
+        guard isInActiveTimeRange else { return }
+        guard let conversation = currentConversation,
+              let rating = getContactRating(for: conversation) else { return }
+        
+        var title = ""
+        var message = ""
+        var style: UIAlertController.Style = .alert
+        
+        switch rating {
+        case 1: // Caution
+            title = "⚠️ Caution Warning"
+            message = "You're texting during sensitive hours.\nAny messages you send will be marked as 'Sent with warning'."
+            style = .actionSheet
+        case 2: // High Risk
+            title = "🚫 High Risk Warning"
+            message = "This contact is marked as HIGH RISK.\nPlease wait until you're outside sensitive hours to message them."
+            style = .actionSheet
+        default:
+            return
+        }
+        
+        let alert = UIAlertController(title: title, message: message, preferredStyle: style)
+        
+        // Add actions based on rating
+        if rating == 1 {
+            // For Caution, add "Continue" and "Open Settings"
+            let continueAction = UIAlertAction(title: "Continue Messaging", style: .default) { [weak self] _ in
+                self?.requestPresentationStyle(.compact)
+            }
+            alert.addAction(continueAction)
+        } else if rating == 2 {
+            // For High Risk, add countdown
+            message += "\n\nCooldown: \(cooldownSeconds) seconds"
+            startCooldownTimer()
+        }
+        
+        // Add "Change Settings" action
+        let settingsAction = UIAlertAction(title: "Change Warning Settings", style: .default) { [weak self] _ in
+            self?.requestPresentationStyle(.expanded)
+        }
+        alert.addAction(settingsAction)
+        
+        // Add cancel action
+        let cancelAction = UIAlertAction(title: "Dismiss", style: .cancel) { [weak self] _ in
+            self?.requestPresentationStyle(.compact)
+        }
+        alert.addAction(cancelAction)
+        
+        // Present the alert
+        present(alert, animated: true)
+        warningAlert = alert
     }
     
     private func startCooldownTimer() {
         cooldownSeconds = 10
-        sendButton.isEnabled = false
         
-        sendTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] timer in
+        // Update the warning message with countdown
+        Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] timer in
             guard let self = self else {
                 timer.invalidate()
                 return
             }
             
             self.cooldownSeconds -= 1
-            self.cooldownLabel.text = "Sending in \(self.cooldownSeconds) seconds..."
+            
+            if let alert = self.warningAlert {
+                alert.message = "This contact is marked as HIGH RISK.\nPlease wait until you're outside sensitive hours to message them.\n\nCooldown: \(self.cooldownSeconds) seconds"
+            }
             
             if self.cooldownSeconds <= 0 {
                 timer.invalidate()
-                self.sendTimer = nil
-                self.sendButton.isEnabled = true
-                self.cooldownLabel.text = "Ready to send"
+                self.warningAlert?.dismiss(animated: true)
+                self.warningAlert = nil
+                self.requestPresentationStyle(.compact)
             }
-        }
-    }
-    
-    private func sendMessageNormally() {
-        let message = MSMessage()
-        let layout = MSMessageTemplateLayout()
-        layout.caption = messageText
-        message.layout = layout
-        message.summaryText = messageText
-        
-        currentConversation?.insert(message) { [weak self] error in
-            DispatchQueue.main.async {
-                if let error = error {
-                    print("Error sending message: \(error)")
-                } else {
-                    self?.messageTextView.text = ""
-                    self?.dismiss()
-                }
-            }
-        }
-    }
-    
-    @objc private func handleSendAnyway() {
-        // For "No" rated contacts, only allow sending after cooldown
-        if !cooldownLabel.isHidden && cooldownSeconds > 0 {
-            return
-        }
-        
-        sendMessageNormally()
-    }
-    
-    @objc private func handleCancel() {
-        sendTimer?.invalidate()
-        sendTimer = nil
-        messageTextView.text = ""
-        hideWarning()
-    }
-    
-    // MARK: - Warning Display
-    private func showWarning() {
-        print("Showing warning view")
-        messageInputView.isHidden = true
-        warningView.alpha = 0
-        warningView.isHidden = false
-        
-        UIView.animate(withDuration: 0.3) {
-            self.warningView.alpha = 1
-        }
-    }
-    
-    private func hideWarning() {
-        print("Hiding warning view")
-        UIView.animate(withDuration: 0.3) {
-            self.warningView.alpha = 0
-        } completion: { _ in
-            self.warningView.isHidden = true
-            self.messageInputView.isHidden = false
         }
     }
     
     // MARK: - Conversation Handling
     override func willBecomeActive(with conversation: MSConversation) {
         super.willBecomeActive(with: conversation)
-        print("Extension becoming active")
         currentConversation = conversation
-        requestPresentationStyle(.expanded)
+        updateCurrentStatus()
         
-        // Reset UI state
-        messageInputView.isHidden = false
-        warningView.isHidden = true
-        messageTextView.text = ""
-        cooldownSeconds = 10
-        sendTimer?.invalidate()
-        sendTimer = nil
+        // Only show warning if we're in active hours and have a rating
+        if isInActiveTimeRange, 
+           let rating = getContactRating(for: conversation),
+           rating > 0 {
+            showWarningIfNeeded()
+        }
     }
     
     override func didResignActive(with conversation: MSConversation) {
         super.didResignActive(with: conversation)
         print("Extension resigning active")
         // Clean up
-        messageTextView.text = ""
         messageText = ""
         currentMessage = nil
         sendTimer?.invalidate()
         sendTimer = nil
     }
-   
+    
+    // MARK: - Message Handling
+    override func didStartSending(_ message: MSMessage, conversation: MSConversation) {
+        super.didStartSending(message, conversation: conversation)
+        
+        // Check if we're in active hours and have a rating
+        guard isInActiveTimeRange,
+              let rating = getContactRating(for: conversation),
+              rating > 0 else {
+            return
+        }
+        
+        // Show a simple warning alert
+        let title = rating == 2 ? "🚫 High Risk Warning" : "⚠️ Caution"
+        let message = "You're sending a message during sensitive hours (\(getCurrentTimeString())). Are you sure?"
+        
+        let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
+        
+        // Add continue action
+        let continueAction = UIAlertAction(title: "Send Anyway", style: .default)
+        alert.addAction(continueAction)
+        
+        // Add cancel action
+        let cancelAction = UIAlertAction(title: "Cancel", style: .cancel)
+        alert.addAction(cancelAction)
+        
+        // Present the alert
+        present(alert, animated: true)
+        warningAlert = alert
+    }
+    
     override func didReceive(_ message: MSMessage, conversation: MSConversation) {
+        super.didReceive(message, conversation: conversation)
+        
         // Called when a message arrives that was generated by another instance of this
         // extension on a remote device.
         
@@ -427,21 +425,104 @@ class MessagesViewController: MSMessagesAppViewController {
     }
     
     override func didCancelSending(_ message: MSMessage, conversation: MSConversation) {
-        // Called when the user deletes the message without sending it.
-    
-        // Use this to clean up state related to the deleted message.
+        super.didCancelSending(message, conversation: conversation)
+        
+        // Dismiss warning if user cancels sending
+        warningAlert?.dismiss(animated: true)
+        warningAlert = nil
     }
     
+    // MARK: - Presentation Style Handling
     override func willTransition(to presentationStyle: MSMessagesAppPresentationStyle) {
-        // Called before the extension transitions to a new presentation style.
-    
-        // Use this method to prepare for the change in presentation style.
+        super.willTransition(to: presentationStyle)
+        
+        if presentationStyle == .expanded {
+            checkAndShowWarning()
+        }
     }
     
     override func didTransition(to presentationStyle: MSMessagesAppPresentationStyle) {
-        // Called after the extension transitions to a new presentation style.
-    
-        // Use this method to finalize any behaviors associated with the change in presentation style.
+        super.didTransition(to: presentationStyle)
+        
+        // Update UI based on presentation style
+        if presentationStyle == .compact {
+            // Dismiss any existing warning when going to compact mode
+            warningAlert?.dismiss(animated: true)
+            warningAlert = nil
+        }
     }
-
+    
+    private func checkAndShowWarning() {
+        guard isInActiveTimeRange else {
+            print("Not in active time range")
+            return
+        }
+        
+        guard let conversation = currentConversation,
+              let rating = getContactRating(for: conversation) else {
+            print("No conversation or rating found")
+            return
+        }
+        
+        print("Checking warning for rating: \(rating)")
+        
+        let alert = UIAlertController(
+            title: rating == 1 ? "⚠️ Caution" : "🚫 High Risk",
+            message: getWarningMessage(for: rating),
+            preferredStyle: .alert
+        )
+        
+        // Add "I Understand" action for Caution
+        if rating == 1 {
+            let continueAction = UIAlertAction(title: "I Understand", style: .default) { [weak self] _ in
+                self?.requestPresentationStyle(.compact)
+            }
+            alert.addAction(continueAction)
+        }
+        
+        // Add "Wait" action for High Risk
+        if rating == 2 {
+            let waitAction = UIAlertAction(title: "Wait \(cooldownSeconds) seconds", style: .destructive) { [weak self] _ in
+                self?.startCooldownTimer()
+            }
+            alert.addAction(waitAction)
+        }
+        
+        // Add cancel action
+        let cancelAction = UIAlertAction(title: "Cancel", style: .cancel) { [weak self] _ in
+            self?.requestPresentationStyle(.compact)
+        }
+        alert.addAction(cancelAction)
+        
+        // Present the alert
+        present(alert, animated: true)
+        warningAlert = alert
+    }
+    
+    private func getWarningMessage(for rating: Int) -> String {
+        switch rating {
+        case 1:
+            return """
+                You're texting during sensitive hours (currently \(getCurrentTimeString())).
+                
+                Are you sure you want to send messages to this contact?
+                """
+        case 2:
+            return """
+                ⚠️ HIGH RISK CONTACT - COOLING DOWN PERIOD REQUIRED ⚠️
+                
+                Current time: \(getCurrentTimeString())
+                This contact is marked as HIGH RISK.
+                You must wait \(cooldownSeconds) seconds before sending.
+                """
+        default:
+            return ""
+        }
+    }
+    
+    private func getCurrentTimeString() -> String {
+        let formatter = DateFormatter()
+        formatter.timeStyle = .short
+        return formatter.string(from: Date())
+    }
 }
