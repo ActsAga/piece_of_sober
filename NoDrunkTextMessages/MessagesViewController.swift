@@ -43,7 +43,7 @@ class MessagesViewController: MSMessagesAppViewController {
             return false
         }
         
-        print("DEBUG: Checking UserDefaults with suite: \(defaults.suiteName ?? "nil")")
+        print("DEBUG: Using app group: group.com.danielbekele.NoDrunkText")
         
         guard let data = defaults.data(forKey: "timeRanges") else {
             print("DEBUG: No timeRanges data found in UserDefaults")
