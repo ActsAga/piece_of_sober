@@ -7,6 +7,18 @@
 
 import UIKit
 import Messages
+import Contacts
+
+// MARK: - Models
+struct TimeRange: Codable {
+    let start: Date
+    let end: Date
+}
+
+struct Contact: Codable {
+    let identifier: String
+    var rating: Int
+}
 
 class MessagesViewController: MSMessagesAppViewController {
     
@@ -14,6 +26,43 @@ class MessagesViewController: MSMessagesAppViewController {
     private var currentMessage: MSMessage?
     private var currentConversation: MSConversation?
     private var messageText: String = ""
+    private var sendTimer: Timer?
+    private let userDefaults = UserDefaults(suiteName: "group.NoDrunkText")!
+    private var cooldownSeconds = 10
+    
+    private var isInActiveTimeRange: Bool {
+        guard let data = userDefaults.data(forKey: "savedTimeRanges"),
+              let timeRanges = try? JSONDecoder().decode([TimeRange].self, from: data) else {
+            return false
+        }
+        
+        let now = Date()
+        let calendar = Calendar.current
+        let currentComponents = calendar.dateComponents([.hour, .minute], from: now)
+        let currentMinutes = (currentComponents.hour ?? 0) * 60 + (currentComponents.minute ?? 0)
+        
+        return timeRanges.contains { range in
+            let startComponents = calendar.dateComponents([.hour, .minute], from: range.start)
+            let endComponents = calendar.dateComponents([.hour, .minute], from: range.end)
+            let startMinutes = (startComponents.hour ?? 0) * 60 + (startComponents.minute ?? 0)
+            let endMinutes = (endComponents.hour ?? 0) * 60 + (endComponents.minute ?? 0)
+            
+            if endMinutes <= startMinutes {
+                // Time range crosses midnight
+                return currentMinutes >= startMinutes || currentMinutes <= endMinutes
+            } else {
+                return currentMinutes >= startMinutes && currentMinutes <= endMinutes
+            }
+        }
+    }
+    
+    private func getContactRating(for phoneNumber: String) -> Int? {
+        guard let data = userDefaults.data(forKey: "contacts"),
+              let contacts = try? JSONDecoder().decode([Contact].self, from: data) else {
+            return nil
+        }
+        return contacts.first { $0.identifier == phoneNumber }?.rating
+    }
     
     // MARK: - UI Elements
     private let messageInputView: UIView = {
@@ -99,6 +148,15 @@ class MessagesViewController: MSMessagesAppViewController {
         return button
     }()
     
+    private let cooldownLabel: UILabel = {
+        let label = UILabel()
+        label.textColor = .systemGray
+        label.textAlignment = .center
+        label.font = .systemFont(ofSize: 14)
+        label.isHidden = true
+        return label
+    }()
+    
     // MARK: - View Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -114,6 +172,7 @@ class MessagesViewController: MSMessagesAppViewController {
         warningView.addSubview(warningLabel)
         warningView.addSubview(warningDescription)
         warningView.addSubview(buttonStack)
+        warningView.addSubview(cooldownLabel)
         
         buttonStack.addArrangedSubview(cancelButton)
         buttonStack.addArrangedSubview(sendButton)
@@ -145,7 +204,13 @@ class MessagesViewController: MSMessagesAppViewController {
             buttonStack.leadingAnchor.constraint(equalTo: warningView.leadingAnchor, constant: 16),
             buttonStack.trailingAnchor.constraint(equalTo: warningView.trailingAnchor, constant: -16),
             buttonStack.bottomAnchor.constraint(equalTo: warningView.bottomAnchor, constant: -24),
-            buttonStack.heightAnchor.constraint(equalToConstant: 50)
+            buttonStack.heightAnchor.constraint(equalToConstant: 50),
+            
+            // Cooldown label constraints
+            cooldownLabel.topAnchor.constraint(equalTo: buttonStack.bottomAnchor, constant: 8),
+            cooldownLabel.leadingAnchor.constraint(equalTo: warningView.leadingAnchor, constant: 16),
+            cooldownLabel.trailingAnchor.constraint(equalTo: warningView.trailingAnchor, constant: -16),
+            cooldownLabel.bottomAnchor.constraint(equalTo: warningView.bottomAnchor, constant: -8)
         ])
         
         // Add button actions
@@ -187,40 +252,122 @@ class MessagesViewController: MSMessagesAppViewController {
     @objc private func handleSendMessage() {
         guard let text = messageTextView.text, !text.isEmpty else { return }
         messageText = text
+        
+        // Check if we're in active time range
+        guard isInActiveTimeRange else {
+            // Not in active time range, send message normally
+            sendMessageNormally()
+            return
+        }
+        
+        // Get recipient's phone number
+        guard let conversation = currentConversation,
+              let recipient = conversation.remoteParticipantIdentifiers.first?.uuidString else {
+            sendMessageNormally()
+            return
+        }
+        
+        // Check contact rating
+        if let rating = getContactRating(for: recipient) {
+            switch rating {
+            case 1: // Caution
+                showCautionWarning()
+            case 2: // No
+                showNoWarning()
+            default:
+                sendMessageNormally()
+            }
+        } else {
+            // No rating, send normally
+            sendMessageNormally()
+        }
+    }
+    
+    private func showCautionWarning() {
+        warningView.backgroundColor = .systemYellow.withAlphaComponent(0.15)
+        warningView.layer.borderColor = UIColor.systemYellow.withAlphaComponent(0.3).cgColor
+        warningLabel.text = "⚠️ Caution Warning ⚠️"
+        warningLabel.textColor = .systemYellow
+        warningDescription.text = "You marked this contact as requiring caution.\nAre you sure you want to send this message?"
+        sendButton.backgroundColor = .systemYellow
+        sendButton.setTitleColor(.white, for: .normal)
+        cancelButton.setTitleColor(.systemYellow, for: .normal)
+        cancelButton.backgroundColor = .systemYellow.withAlphaComponent(0.1)
+        cooldownLabel.isHidden = true
         showWarning()
     }
     
-    @objc private func handleSendAnyway() {
-        print("User chose to send anyway")
+    private func showNoWarning() {
+        warningView.backgroundColor = .systemRed.withAlphaComponent(0.15)
+        warningView.layer.borderColor = UIColor.systemRed.withAlphaComponent(0.3).cgColor
+        warningLabel.text = "🚫 High Risk Warning 🚫"
+        warningLabel.textColor = .systemRed
+        warningDescription.text = "You marked this contact as high-risk.\nThe message will be sent after a 10-second cooldown."
+        sendButton.backgroundColor = .systemRed
+        sendButton.setTitleColor(.white, for: .normal)
+        cancelButton.setTitleColor(.systemRed, for: .normal)
+        cancelButton.backgroundColor = .systemRed.withAlphaComponent(0.1)
+        cooldownLabel.isHidden = false
+        cooldownLabel.text = "Sending in \(cooldownSeconds) seconds..."
+        showWarning()
+        startCooldownTimer()
+    }
+    
+    private func startCooldownTimer() {
+        cooldownSeconds = 10
+        sendButton.isEnabled = false
         
-        // Create a new message
+        sendTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] timer in
+            guard let self = self else {
+                timer.invalidate()
+                return
+            }
+            
+            self.cooldownSeconds -= 1
+            self.cooldownLabel.text = "Sending in \(self.cooldownSeconds) seconds..."
+            
+            if self.cooldownSeconds <= 0 {
+                timer.invalidate()
+                self.sendTimer = nil
+                self.sendButton.isEnabled = true
+                self.cooldownLabel.text = "Ready to send"
+            }
+        }
+    }
+    
+    private func sendMessageNormally() {
         let message = MSMessage()
         let layout = MSMessageTemplateLayout()
         layout.caption = messageText
-        layout.subcaption = "Sent with warning override"
         message.layout = layout
         message.summaryText = messageText
         
-        // Insert the message into the conversation
-        if let conversation = currentConversation {
-            conversation.insert(message) { [weak self] error in
-                DispatchQueue.main.async {
-                    if let error = error {
-                        print("Error sending message: \(error)")
-                    } else {
-                        print("Message sent successfully")
-                        self?.messageTextView.text = ""
-                        self?.dismiss()
-                    }
+        currentConversation?.insert(message) { [weak self] error in
+            DispatchQueue.main.async {
+                if let error = error {
+                    print("Error sending message: \(error)")
+                } else {
+                    self?.messageTextView.text = ""
+                    self?.dismiss()
                 }
             }
         }
     }
     
+    @objc private func handleSendAnyway() {
+        // For "No" rated contacts, only allow sending after cooldown
+        if !cooldownLabel.isHidden && cooldownSeconds > 0 {
+            return
+        }
+        
+        sendMessageNormally()
+    }
+    
     @objc private func handleCancel() {
-        print("User cancelled sending")
+        sendTimer?.invalidate()
+        sendTimer = nil
         messageTextView.text = ""
-        dismiss()
+        hideWarning()
     }
     
     // MARK: - Warning Display
@@ -256,6 +403,9 @@ class MessagesViewController: MSMessagesAppViewController {
         messageInputView.isHidden = false
         warningView.isHidden = true
         messageTextView.text = ""
+        cooldownSeconds = 10
+        sendTimer?.invalidate()
+        sendTimer = nil
     }
     
     override func didResignActive(with conversation: MSConversation) {
@@ -265,6 +415,8 @@ class MessagesViewController: MSMessagesAppViewController {
         messageTextView.text = ""
         messageText = ""
         currentMessage = nil
+        sendTimer?.invalidate()
+        sendTimer = nil
     }
    
     override func didReceive(_ message: MSMessage, conversation: MSConversation) {
