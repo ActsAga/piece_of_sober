@@ -22,16 +22,16 @@
 		</dict>
 	</dict>
 	<key>NSContactsUsageDescription</key>
-	<string>We need access to your contacts to allow you to rate them for the NoDrunkText feature.</string>
+	<string>We need access to your contacts to allow you to rate them for the Piece of Sober feature.</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>NoDrunkText</string>
+				<string>PieceOfSober</string>
 			</array>
 			<key>CFBundleURLName</key>
-			<string>com.danielbekele.NoDrunkText</string>
+			<string>com.danielbekele.PieceOfSober</string>
 		</dict>
 	</array>
 </dict>

@@ -67,7 +67,7 @@ class ViewController: UIViewController {
     
     private let logoLabel: UILabel = {
         let label = UILabel()
-        label.text = "NoDrunkText"
+        label.text = "Piece of Sober"
         label.font = .boldSystemFont(ofSize: 32)
         label.textColor = .systemBlue
         return label
@@ -390,7 +390,7 @@ class ViewController: UIViewController {
     // MARK: - Data Management
     private func loadSavedTimeRanges() {
         print("\n=== Loading Time Ranges ===")
-        let groupID = "group.com.danielbekele.NoDrunkText"
+        let groupID = "group.com.danielbekele.PieceOfSober"
         
         guard let defaults = UserDefaults(suiteName: groupID) else {
             print("❌ CRITICAL: Could not access App Group UserDefaults")
@@ -428,7 +428,7 @@ class ViewController: UIViewController {
     
     private func saveTimeRanges() {
         print("\n=== Saving Time Ranges ===")
-        let groupID = "group.com.danielbekele.NoDrunkText"
+        let groupID = "group.com.danielbekele.PieceOfSober"
         
         // First verify we can access the app group
         guard let defaults = UserDefaults(suiteName: groupID) else {

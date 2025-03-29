@@ -50,7 +50,7 @@ class MessagesViewController: MSMessagesAppViewController {
     private var currentConversation: MSConversation?
     private var messageText: String = ""
     private var sendTimer: Timer?
-    private let groupID = "group.com.danielbekele.NoDrunkText"
+    private let groupID = "group.com.danielbekele.PieceOfSober"
     private var warningAlert: UIAlertController?
     private var savedTimeRanges: [TimeRange] = []
     
@@ -238,7 +238,7 @@ class MessagesViewController: MSMessagesAppViewController {
     // MARK: - View Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
-        NSLog("📱 [NoDrunkText] Extension viewDidLoad")
+        NSLog("📱 [PieceOfSober] Extension viewDidLoad")
         setupUI()
         loadSavedTimeRanges()
         loadCurrentRating()
