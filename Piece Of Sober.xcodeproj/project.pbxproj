@@ -10,7 +10,7 @@
 		7B8400262D7E26D700820E7B /* ContactManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B8400252D7E26D400820E7B /* ContactManager.swift */; };
 		7B840D1B2D7E2AF4004704AB /* NoDrunkText.plist in Resources */ = {isa = PBXBuildFile; fileRef = 7B840D1A2D7E2AF4004704AB /* NoDrunkText.plist */; };
 		A12113C42D826B0400677E38 /* Messages.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7B84000D2D7D4C8400820E7B /* Messages.framework */; };
-		A12113D02D826B0600677E38 /* PieceOfSoberMessages.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = A12113C32D826B0400677E38 /* PieceOfSoberMessages.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		A12113D02D826B0600677E38 /* Piece Of SoberMessages.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = A12113C32D826B0400677E38 /* Piece Of SoberMessages.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -44,7 +44,7 @@
 			dstPath = "";
 			dstSubfolderSpec = 13;
 			files = (
-				A12113D02D826B0600677E38 /* PieceOfSoberMessages.appex in Embed Foundation Extensions */,
+				A12113D02D826B0600677E38 /* Piece Of SoberMessages.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -55,26 +55,26 @@
 		7B84000D2D7D4C8400820E7B /* Messages.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Messages.framework; path = System/Library/Frameworks/Messages.framework; sourceTree = SDKROOT; };
 		7B8400252D7E26D400820E7B /* ContactManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactManager.swift; sourceTree = "<group>"; };
 		7B840D1A2D7E2AF4004704AB /* NoDrunkText.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = NoDrunkText.plist; sourceTree = "<group>"; };
-		7B84FFD32D7D4C4900820E7B /* PieceOfSober.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PieceOfSober.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		7B84FFE92D7D4C4A00820E7B /* PieceOfSoberTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PieceOfSoberTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		7B84FFF32D7D4C4A00820E7B /* PieceOfSoberUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PieceOfSoberUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		A12113C32D826B0400677E38 /* PieceOfSoberMessages.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = PieceOfSoberMessages.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		7B84FFD32D7D4C4900820E7B /* Piece Of Sober.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Piece Of Sober.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		7B84FFE92D7D4C4A00820E7B /* Piece Of SoberTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Piece Of SoberTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		7B84FFF32D7D4C4A00820E7B /* Piece Of SoberUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Piece Of SoberUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		A12113C32D826B0400677E38 /* Piece Of SoberMessages.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "Piece Of SoberMessages.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		7B84FFFB2D7D4C4A00820E7B /* Exceptions for "NoDrunkText" folder in "PieceOfSober" target */ = {
+		7B84FFFB2D7D4C4A00820E7B /* Exceptions for "NoDrunkText" folder in "Piece Of Sober" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
 			);
-			target = 7B84FFD22D7D4C4900820E7B /* PieceOfSober */;
+			target = 7B84FFD22D7D4C4900820E7B /* Piece Of Sober */;
 		};
-		A12113D42D826B0600677E38 /* Exceptions for "NoDrunkTextMessages" folder in "PieceOfSoberMessages" target */ = {
+		A12113D42D826B0600677E38 /* Exceptions for "NoDrunkTextMessages" folder in "Piece Of SoberMessages" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
 			);
-			target = A12113C22D826B0400677E38 /* PieceOfSoberMessages */;
+			target = A12113C22D826B0400677E38 /* Piece Of SoberMessages */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -87,7 +87,7 @@
 		7B84FFD52D7D4C4900820E7B /* NoDrunkText */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				7B84FFFB2D7D4C4A00820E7B /* Exceptions for "NoDrunkText" folder in "PieceOfSober" target */,
+				7B84FFFB2D7D4C4A00820E7B /* Exceptions for "NoDrunkText" folder in "Piece Of Sober" target */,
 			);
 			path = NoDrunkText;
 			sourceTree = "<group>";
@@ -105,7 +105,7 @@
 		A12113C52D826B0500677E38 /* NoDrunkTextMessages */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				A12113D42D826B0600677E38 /* Exceptions for "NoDrunkTextMessages" folder in "PieceOfSoberMessages" target */,
+				A12113D42D826B0600677E38 /* Exceptions for "NoDrunkTextMessages" folder in "Piece Of SoberMessages" target */,
 			);
 			path = NoDrunkTextMessages;
 			sourceTree = "<group>";
@@ -171,10 +171,10 @@
 		7B84FFD42D7D4C4900820E7B /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				7B84FFD32D7D4C4900820E7B /* PieceOfSober.app */,
-				7B84FFE92D7D4C4A00820E7B /* PieceOfSoberTests.xctest */,
-				7B84FFF32D7D4C4A00820E7B /* PieceOfSoberUITests.xctest */,
-				A12113C32D826B0400677E38 /* PieceOfSoberMessages.appex */,
+				7B84FFD32D7D4C4900820E7B /* Piece Of Sober.app */,
+				7B84FFE92D7D4C4A00820E7B /* Piece Of SoberTests.xctest */,
+				7B84FFF32D7D4C4A00820E7B /* Piece Of SoberUITests.xctest */,
+				A12113C32D826B0400677E38 /* Piece Of SoberMessages.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -182,9 +182,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		7B84FFD22D7D4C4900820E7B /* PieceOfSober */ = {
+		7B84FFD22D7D4C4900820E7B /* Piece Of Sober */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 7B84FFFC2D7D4C4A00820E7B /* Build configuration list for PBXNativeTarget "PieceOfSober" */;
+			buildConfigurationList = 7B84FFFC2D7D4C4A00820E7B /* Build configuration list for PBXNativeTarget "Piece Of Sober" */;
 			buildPhases = (
 				7B84FFCF2D7D4C4900820E7B /* Sources */,
 				7B84FFD02D7D4C4900820E7B /* Frameworks */,
@@ -199,16 +199,16 @@
 			fileSystemSynchronizedGroups = (
 				7B84FFD52D7D4C4900820E7B /* NoDrunkText */,
 			);
-			name = PieceOfSober;
+			name = "Piece Of Sober";
 			packageProductDependencies = (
 			);
 			productName = NoDrunkText;
-			productReference = 7B84FFD32D7D4C4900820E7B /* PieceOfSober.app */;
+			productReference = 7B84FFD32D7D4C4900820E7B /* Piece Of Sober.app */;
 			productType = "com.apple.product-type.application";
 		};
-		7B84FFE82D7D4C4A00820E7B /* PieceOfSoberTests */ = {
+		7B84FFE82D7D4C4A00820E7B /* Piece Of SoberTests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 7B8400012D7D4C4A00820E7B /* Build configuration list for PBXNativeTarget "PieceOfSoberTests" */;
+			buildConfigurationList = 7B8400012D7D4C4A00820E7B /* Build configuration list for PBXNativeTarget "Piece Of SoberTests" */;
 			buildPhases = (
 				7B84FFE52D7D4C4A00820E7B /* Sources */,
 				7B84FFE62D7D4C4A00820E7B /* Frameworks */,
@@ -222,16 +222,16 @@
 			fileSystemSynchronizedGroups = (
 				7B84FFEC2D7D4C4A00820E7B /* NoDrunkTextTests */,
 			);
-			name = PieceOfSoberTests;
+			name = "Piece Of SoberTests";
 			packageProductDependencies = (
 			);
 			productName = NoDrunkTextTests;
-			productReference = 7B84FFE92D7D4C4A00820E7B /* PieceOfSoberTests.xctest */;
+			productReference = 7B84FFE92D7D4C4A00820E7B /* Piece Of SoberTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
-		7B84FFF22D7D4C4A00820E7B /* PieceOfSoberUITests */ = {
+		7B84FFF22D7D4C4A00820E7B /* Piece Of SoberUITests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 7B8400042D7D4C4A00820E7B /* Build configuration list for PBXNativeTarget "PieceOfSoberUITests" */;
+			buildConfigurationList = 7B8400042D7D4C4A00820E7B /* Build configuration list for PBXNativeTarget "Piece Of SoberUITests" */;
 			buildPhases = (
 				7B84FFEF2D7D4C4A00820E7B /* Sources */,
 				7B84FFF02D7D4C4A00820E7B /* Frameworks */,
@@ -245,16 +245,16 @@
 			fileSystemSynchronizedGroups = (
 				7B84FFF62D7D4C4A00820E7B /* NoDrunkTextUITests */,
 			);
-			name = PieceOfSoberUITests;
+			name = "Piece Of SoberUITests";
 			packageProductDependencies = (
 			);
 			productName = NoDrunkTextUITests;
-			productReference = 7B84FFF32D7D4C4A00820E7B /* PieceOfSoberUITests.xctest */;
+			productReference = 7B84FFF32D7D4C4A00820E7B /* Piece Of SoberUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
-		A12113C22D826B0400677E38 /* PieceOfSoberMessages */ = {
+		A12113C22D826B0400677E38 /* Piece Of SoberMessages */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = A12113D12D826B0600677E38 /* Build configuration list for PBXNativeTarget "PieceOfSoberMessages" */;
+			buildConfigurationList = A12113D12D826B0600677E38 /* Build configuration list for PBXNativeTarget "Piece Of SoberMessages" */;
 			buildPhases = (
 				A12113BF2D826B0400677E38 /* Sources */,
 				A12113C02D826B0400677E38 /* Frameworks */,
@@ -267,11 +267,11 @@
 			fileSystemSynchronizedGroups = (
 				A12113C52D826B0500677E38 /* NoDrunkTextMessages */,
 			);
-			name = PieceOfSoberMessages;
+			name = "Piece Of SoberMessages";
 			packageProductDependencies = (
 			);
 			productName = NoDrunkTextMessages;
-			productReference = A12113C32D826B0400677E38 /* PieceOfSoberMessages.appex */;
+			productReference = A12113C32D826B0400677E38 /* Piece Of SoberMessages.appex */;
 			productType = "com.apple.product-type.app-extension.messages";
 		};
 /* End PBXNativeTarget section */
@@ -300,7 +300,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 7B84FFCE2D7D4C4900820E7B /* Build configuration list for PBXProject "PieceOfSober" */;
+			buildConfigurationList = 7B84FFCE2D7D4C4900820E7B /* Build configuration list for PBXProject "Piece Of Sober" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -314,10 +314,10 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				7B84FFD22D7D4C4900820E7B /* PieceOfSober */,
-				7B84FFE82D7D4C4A00820E7B /* PieceOfSoberTests */,
-				7B84FFF22D7D4C4A00820E7B /* PieceOfSoberUITests */,
-				A12113C22D826B0400677E38 /* PieceOfSoberMessages */,
+				7B84FFD22D7D4C4900820E7B /* Piece Of Sober */,
+				7B84FFE82D7D4C4A00820E7B /* Piece Of SoberTests */,
+				7B84FFF22D7D4C4A00820E7B /* Piece Of SoberUITests */,
+				A12113C22D826B0400677E38 /* Piece Of SoberMessages */,
 			);
 		};
 /* End PBXProject section */
@@ -389,17 +389,17 @@
 /* Begin PBXTargetDependency section */
 		7B84FFEB2D7D4C4A00820E7B /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 7B84FFD22D7D4C4900820E7B /* PieceOfSober */;
+			target = 7B84FFD22D7D4C4900820E7B /* Piece Of Sober */;
 			targetProxy = 7B84FFEA2D7D4C4A00820E7B /* PBXContainerItemProxy */;
 		};
 		7B84FFF52D7D4C4A00820E7B /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 7B84FFD22D7D4C4900820E7B /* PieceOfSober */;
+			target = 7B84FFD22D7D4C4900820E7B /* Piece Of Sober */;
 			targetProxy = 7B84FFF42D7D4C4A00820E7B /* PBXContainerItemProxy */;
 		};
 		A12113CF2D826B0600677E38 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = A12113C22D826B0400677E38 /* PieceOfSoberMessages */;
+			target = A12113C22D826B0400677E38 /* Piece Of SoberMessages */;
 			targetProxy = A12113CE2D826B0600677E38 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
@@ -476,7 +476,7 @@
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/PieceOfSober.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/PieceOfSober";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Piece Of Sober.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Piece Of Sober";
 			};
 			name = Debug;
 		};
@@ -495,7 +495,7 @@
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/PieceOfSober.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/PieceOfSober";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Piece Of Sober.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Piece Of Sober";
 			};
 			name = Release;
 		};
@@ -709,7 +709,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		7B8400012D7D4C4A00820E7B /* Build configuration list for PBXNativeTarget "PieceOfSoberTests" */ = {
+		7B8400012D7D4C4A00820E7B /* Build configuration list for PBXNativeTarget "Piece Of SoberTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				7B8400022D7D4C4A00820E7B /* Debug */,
@@ -718,7 +718,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		7B8400042D7D4C4A00820E7B /* Build configuration list for PBXNativeTarget "PieceOfSoberUITests" */ = {
+		7B8400042D7D4C4A00820E7B /* Build configuration list for PBXNativeTarget "Piece Of SoberUITests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				7B8400052D7D4C4A00820E7B /* Debug */,
@@ -727,7 +727,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		7B84FFCE2D7D4C4900820E7B /* Build configuration list for PBXProject "PieceOfSober" */ = {
+		7B84FFCE2D7D4C4900820E7B /* Build configuration list for PBXProject "Piece Of Sober" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				7B84FFFF2D7D4C4A00820E7B /* Debug */,
@@ -736,7 +736,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		7B84FFFC2D7D4C4A00820E7B /* Build configuration list for PBXNativeTarget "PieceOfSober" */ = {
+		7B84FFFC2D7D4C4A00820E7B /* Build configuration list for PBXNativeTarget "Piece Of Sober" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				7B84FFFD2D7D4C4A00820E7B /* Debug */,
@@ -745,7 +745,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		A12113D12D826B0600677E38 /* Build configuration list for PBXNativeTarget "PieceOfSoberMessages" */ = {
+		A12113D12D826B0600677E38 /* Build configuration list for PBXNativeTarget "Piece Of SoberMessages" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				A12113D22D826B0600677E38 /* Debug */,
