@@ -405,9 +405,9 @@ class MessagesViewController: MSMessagesAppViewController {
     }
     
     private func saveTimeRanges() {
-        NSLog("\n=== [NoDrunkText] Saving Time Ranges ===")
+        NSLog("\n=== [PieceOfSober] Saving Time Ranges ===")
         guard let defaults = UserDefaults(suiteName: groupID) else {
-            NSLog("❌ [NoDrunkText] Could not access App Group")
+            NSLog("❌ [PieceOfSober] Could not access App Group")
             return
         }
         
@@ -441,26 +441,26 @@ class MessagesViewController: MSMessagesAppViewController {
             defaults.set(data, forKey: "timeRanges")
             defaults.synchronize()
             
-            NSLog("✅ [NoDrunkText] Saved \(savedTimeRanges.count) time ranges")
+            NSLog("✅ [PieceOfSober] Saved \(savedTimeRanges.count) time ranges")
             if let rawString = String(data: data, encoding: .utf8) {
-                NSLog("📄 [NoDrunkText] Raw data: \(rawString)")
+                NSLog("📄 [PieceOfSober] Raw data: \(rawString)")
             }
         } catch {
-            NSLog("❌ [NoDrunkText] Failed to save time ranges: \(error.localizedDescription)")
+            NSLog("❌ [PieceOfSober] Failed to save time ranges: \(error.localizedDescription)")
         }
     }
     
     private func loadSavedTimeRanges() {
-        NSLog("\n=== [NoDrunkText] Loading Time Ranges ===")
+        NSLog("\n=== [PieceOfSober] Loading Time Ranges ===")
         guard let defaults = UserDefaults(suiteName: groupID) else {
-            NSLog("❌ [NoDrunkText] Could not access App Group")
+            NSLog("❌ [PieceOfSober] Could not access App Group")
             return
         }
         
         if let data = defaults.data(forKey: "timeRanges"),
            let ranges = try? JSONDecoder().decode([TimeRange].self, from: data) {
             savedTimeRanges = ranges
-            NSLog("✅ [NoDrunkText] Loaded \(ranges.count) time ranges")
+            NSLog("✅ [PieceOfSober] Loaded \(ranges.count) time ranges")
             updateTimeRangesDisplay()
         }
     }
@@ -616,13 +616,13 @@ class MessagesViewController: MSMessagesAppViewController {
     // MARK: - Conversation Handling
     override func willBecomeActive(with conversation: MSConversation) {
         super.willBecomeActive(with: conversation)
-        NSLog("\n=== [NoDrunkText] Extension Becoming Active ===")
+        NSLog("\n=== [PieceOfSober] Extension Becoming Active ===")
         currentConversation = conversation
         
         // Force a UserDefaults sync and load saved time ranges
         if let defaults = UserDefaults(suiteName: groupID) {
             defaults.synchronize()
-            NSLog("🔄 [NoDrunkText] Synchronized UserDefaults")
+            NSLog("🔄 [PieceOfSober] Synchronized UserDefaults")
             loadSavedTimeRanges()
         }
         
