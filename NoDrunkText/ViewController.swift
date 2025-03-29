@@ -128,6 +128,16 @@ class ViewController: UIViewController {
         return label
     }()
     
+    private let contactsDescriptionLabel: UILabel = {
+        let label = UILabel()
+        label.text = "Select 'No' for high-risk contacts and 'Caution' for contacts that need extra attention."
+        label.font = .systemFont(ofSize: 14)
+        label.textColor = .systemGray
+        label.textAlignment = .center
+        label.numberOfLines = 0
+        return label
+    }()
+    
     private let contactsTableView: UITableView = {
         let tableView = UITableView()
         tableView.register(ContactCell.self, forCellReuseIdentifier: "ContactCell")
@@ -188,6 +198,7 @@ class ViewController: UIViewController {
         contentView.addSubview(savedTimesLabel)
         contentView.addSubview(savedTimesTableView)
         contentView.addSubview(contactsLabel)
+        contentView.addSubview(contactsDescriptionLabel)
         contentView.addSubview(contactsTableView)
         
         // Configure constraints
@@ -201,6 +212,7 @@ class ViewController: UIViewController {
         savedTimesLabel.translatesAutoresizingMaskIntoConstraints = false
         savedTimesTableView.translatesAutoresizingMaskIntoConstraints = false
         contactsLabel.translatesAutoresizingMaskIntoConstraints = false
+        contactsDescriptionLabel.translatesAutoresizingMaskIntoConstraints = false
         contactsTableView.translatesAutoresizingMaskIntoConstraints = false
         
         NSLayoutConstraint.activate([
@@ -256,7 +268,11 @@ class ViewController: UIViewController {
             contactsLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
             contactsLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
             
-            contactsTableView.topAnchor.constraint(equalTo: contactsLabel.bottomAnchor, constant: 10),
+            contactsDescriptionLabel.topAnchor.constraint(equalTo: contactsLabel.bottomAnchor, constant: 8),
+            contactsDescriptionLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
+            contactsDescriptionLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
+            
+            contactsTableView.topAnchor.constraint(equalTo: contactsDescriptionLabel.bottomAnchor, constant: 10),
             contactsTableView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
             contactsTableView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
             contactsTableView.heightAnchor.constraint(equalToConstant: 400),
@@ -604,8 +620,8 @@ class ContactCell: UITableViewCell {
     private let cautionButton: UIButton = {
         let button = UIButton(type: .system)
         button.setTitle("Caution", for: .normal)
-        button.backgroundColor = .systemYellow
-        button.setTitleColor(.white, for: .normal)
+        button.backgroundColor = .systemYellow.withAlphaComponent(0.2)
+        button.setTitleColor(.label, for: .normal)
         button.layer.cornerRadius = 15
         button.tag = 1
         return button
@@ -614,8 +630,8 @@ class ContactCell: UITableViewCell {
     private let noButton: UIButton = {
         let button = UIButton(type: .system)
         button.setTitle("No", for: .normal)
-        button.backgroundColor = .systemRed
-        button.setTitleColor(.white, for: .normal)
+        button.backgroundColor = .systemRed.withAlphaComponent(0.2)
+        button.setTitleColor(.label, for: .normal)
         button.layer.cornerRadius = 15
         button.tag = 2
         return button
@@ -670,15 +686,19 @@ class ContactCell: UITableViewCell {
         }
         
         // Reset button appearances
-        cautionButton.alpha = 0.5
-        noButton.alpha = 0.5
+        cautionButton.alpha = 1.0
+        noButton.alpha = 1.0
         
-        // Update selected rating
+        // Set default background colors (unselected state)
+        cautionButton.backgroundColor = .systemYellow.withAlphaComponent(0.2)
+        noButton.backgroundColor = .systemRed.withAlphaComponent(0.2)
+        
+        // Update selected rating with darker colors
         if let rating = currentRating {
             if rating == 1 {
-                cautionButton.alpha = 1.0
+                cautionButton.backgroundColor = .systemYellow
             } else if rating == 2 {
-                noButton.alpha = 1.0
+                noButton.backgroundColor = .systemRed
             }
         }
     }
