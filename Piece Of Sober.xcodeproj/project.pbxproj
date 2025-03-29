@@ -79,11 +79,6 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		7B6095852D7E274700DB60FE /* NoDrunkTextMessages */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = NoDrunkTextMessages;
-			sourceTree = "<group>";
-		};
 		7B84FFD52D7D4C4900820E7B /* NoDrunkText */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -161,7 +156,6 @@
 				7B84FFD52D7D4C4900820E7B /* NoDrunkText */,
 				7B84FFEC2D7D4C4A00820E7B /* NoDrunkTextTests */,
 				7B84FFF62D7D4C4A00820E7B /* NoDrunkTextUITests */,
-				7B6095852D7E274700DB60FE /* NoDrunkTextMessages */,
 				A12113C52D826B0500677E38 /* NoDrunkTextMessages */,
 				7B84000C2D7D4C8400820E7B /* Frameworks */,
 				7B84FFD42D7D4C4900820E7B /* Products */,
