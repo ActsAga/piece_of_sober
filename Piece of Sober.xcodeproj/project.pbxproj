@@ -294,7 +294,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 7B84FFCE2D7D4C4900820E7B /* Build configuration list for PBXProject "Piece Of Sober" */;
+			buildConfigurationList = 7B84FFCE2D7D4C4900820E7B /* Build configuration list for PBXProject "Piece of Sober" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -470,7 +470,7 @@
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Piece Of Sober.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Piece Of Sober";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Piece Of Sober.app/$(BUNDLE_EXECUTABLE_FOLDER_PATPiece of Sober)/Piece Of Sober";
 			};
 			name = Debug;
 		};
@@ -489,7 +489,7 @@
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Piece Of Sober.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Piece Of Sober";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Piece Of Sober.app/$(BUNDLE_EXECUTABLE_FOLDER_PATPiece of Sober)/Piece Of Sober";
 			};
 			name = Release;
 		};
@@ -721,7 +721,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		7B84FFCE2D7D4C4900820E7B /* Build configuration list for PBXProject "Piece Of Sober" */ = {
+		7B84FFCE2D7D4C4900820E7B /* Build configuration list for PBXProject "Piece of Sober" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				7B84FFFF2D7D4C4A00820E7B /* Debug */,
