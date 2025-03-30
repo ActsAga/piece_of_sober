@@ -10,8 +10,10 @@ import Contacts
 
 // MARK: - Models
 struct TimeRange: Codable {
+    let name: String
     let start: Date
     let end: Date
+    let repeatDays: Set<Int> // 1 = Sunday, 2 = Monday, ..., 7 = Saturday
     
     var startHour: Int {
         Calendar.current.component(.hour, from: start)
@@ -30,7 +32,8 @@ struct TimeRange: Codable {
     }
     
     // Add initializer to ensure consistent date handling
-    init(start: Date, end: Date) {
+    init(name: String = "", start: Date, end: Date, repeatDays: Set<Int> = []) {
+        self.name = name
         let calendar = Calendar.current
         // Strip out everything except hour and minute
         let startComponents = calendar.dateComponents([.hour, .minute], from: start)
@@ -39,6 +42,27 @@ struct TimeRange: Codable {
         // Create new dates with just hour and minute
         self.start = calendar.date(from: startComponents) ?? start
         self.end = calendar.date(from: endComponents) ?? end
+        self.repeatDays = repeatDays
+    }
+    
+    // Helper function to get formatted repeat days
+    func getRepeatDaysDescription() -> String {
+        if repeatDays.isEmpty {
+            return "No repeat"
+        }
+        
+        let dayNames = ["", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+        let sortedDays = repeatDays.sorted()
+        
+        if repeatDays.count == 7 {
+            return "Every day"
+        } else if repeatDays == Set([2, 3, 4, 5, 6]) {
+            return "Weekdays"
+        } else if repeatDays == Set([1, 7]) {
+            return "Weekends"
+        }
+        
+        return sortedDays.map { dayNames[$0] }.joined(separator: ", ")
     }
 }
 
@@ -88,6 +112,57 @@ class ViewController: UIViewController {
         return label
     }()
     
+    private let nameTextField: UITextField = {
+        let textField = UITextField()
+        textField.placeholder = "Enter time range name"
+        textField.borderStyle = .none
+        textField.backgroundColor = .systemBackground
+        textField.layer.cornerRadius = 12
+        textField.layer.borderWidth = 1.5
+        textField.layer.borderColor = UIColor.systemBlue.withAlphaComponent(0.3).cgColor
+        textField.leftView = UIView(frame: CGRect(x: 0, y: 0, width: 16, height: 0))
+        textField.leftViewMode = .always
+        textField.rightView = UIView(frame: CGRect(x: 0, y: 0, width: 16, height: 0))
+        textField.rightViewMode = .always
+        textField.font = .systemFont(ofSize: 16, weight: .medium)
+        textField.clearButtonMode = .whileEditing
+        textField.returnKeyType = .done
+        textField.textColor = .label
+        
+        // Add shadow
+        textField.layer.shadowColor = UIColor.black.cgColor
+        textField.layer.shadowOffset = CGSize(width: 0, height: 2)
+        textField.layer.shadowRadius = 4
+        textField.layer.shadowOpacity = 0.1
+        
+        // Add placeholder attributes
+        let placeholderAttributes: [NSAttributedString.Key: Any] = [
+            .foregroundColor: UIColor.systemGray3,
+            .font: UIFont.systemFont(ofSize: 16, weight: .regular)
+        ]
+        textField.attributedPlaceholder = NSAttributedString(string: "Enter time range name", attributes: placeholderAttributes)
+        
+        return textField
+    }()
+    
+    private let nameLabel: UILabel = {
+        let label = UILabel()
+        label.text = "Time Range Name"
+        label.font = .systemFont(ofSize: 14, weight: .medium)
+        label.textColor = .secondaryLabel
+        return label
+    }()
+    
+    private let repeatButton: UIButton = {
+        let button = UIButton(type: .system)
+        button.setTitle("No repeat", for: .normal)
+        button.backgroundColor = .systemGray6
+        button.setTitleColor(.label, for: .normal)
+        button.layer.cornerRadius = 12
+        button.contentEdgeInsets = UIEdgeInsets(top: 8, left: 16, bottom: 8, right: 16)
+        return button
+    }()
+    
     private let timeRangeStack: UIStackView = {
         let stack = UIStackView()
         stack.axis = .horizontal
@@ -126,8 +201,11 @@ class ViewController: UIViewController {
         tableView.layer.borderWidth = 1
         tableView.layer.borderColor = UIColor.systemGray4.cgColor
         tableView.separatorInset = UIEdgeInsets(top: 0, left: 16, bottom: 0, right: 16)
-        tableView.estimatedRowHeight = 60
+        tableView.estimatedRowHeight = 80
         tableView.rowHeight = UITableView.automaticDimension
+        tableView.showsVerticalScrollIndicator = true
+        tableView.clipsToBounds = true
+        tableView.separatorStyle = .none
         return tableView
     }()
     
@@ -141,7 +219,7 @@ class ViewController: UIViewController {
     
     private let contactsDescriptionLabel: UILabel = {
         let label = UILabel()
-        label.text = "Select 'No' for high-risk contacts and 'Caution' for contacts that need extra attention."
+        label.text = "Select 'Risky' for contacts you shouldn't message when drinking, and 'Caution' for contacts that need extra care. Swipe left to clear ratings."
         label.font = .systemFont(ofSize: 14)
         label.textColor = .systemGray
         label.textAlignment = .center
@@ -180,6 +258,7 @@ class ViewController: UIViewController {
     private var savedTimeRanges: [TimeRange] = []
     private let contactStore = CNContactStore()
     private var editingIndexPath: IndexPath?
+    private var selectedRepeatDays: Set<Int> = []
     
     // MARK: - Lifecycle
     override func viewDidLoad() {
@@ -188,6 +267,11 @@ class ViewController: UIViewController {
         setupSearchBar()
         requestContactsAccess()
         loadSavedTimeRanges()
+        nameTextField.delegate = self
+        
+        // Add tap gesture to dismiss keyboard
+        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboard))
+        view.addGestureRecognizer(tapGesture)
     }
     
     override func viewDidLayoutSubviews() {
@@ -211,6 +295,9 @@ class ViewController: UIViewController {
         contentView.addSubview(logoImageView)
         contentView.addSubview(logoLabel)
         contentView.addSubview(timeSectionLabel)
+        contentView.addSubview(nameLabel)
+        contentView.addSubview(nameTextField)
+        contentView.addSubview(repeatButton)
         contentView.addSubview(timeRangeStack)
         timeRangeStack.addArrangedSubview(startTimePicker)
         timeRangeStack.addArrangedSubview(endTimePicker)
@@ -227,6 +314,9 @@ class ViewController: UIViewController {
         logoImageView.translatesAutoresizingMaskIntoConstraints = false
         logoLabel.translatesAutoresizingMaskIntoConstraints = false
         timeSectionLabel.translatesAutoresizingMaskIntoConstraints = false
+        nameLabel.translatesAutoresizingMaskIntoConstraints = false
+        nameTextField.translatesAutoresizingMaskIntoConstraints = false
+        repeatButton.translatesAutoresizingMaskIntoConstraints = false
         timeRangeStack.translatesAutoresizingMaskIntoConstraints = false
         addTimeRangeButton.translatesAutoresizingMaskIntoConstraints = false
         savedTimesLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -263,7 +353,20 @@ class ViewController: UIViewController {
             timeSectionLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
             timeSectionLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
             
-            timeRangeStack.topAnchor.constraint(equalTo: timeSectionLabel.bottomAnchor, constant: 20),
+            nameLabel.topAnchor.constraint(equalTo: timeSectionLabel.bottomAnchor, constant: 16),
+            nameLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
+            nameLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
+            
+            nameTextField.topAnchor.constraint(equalTo: nameLabel.bottomAnchor, constant: 8),
+            nameTextField.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
+            nameTextField.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
+            nameTextField.heightAnchor.constraint(equalToConstant: 48),
+            
+            repeatButton.topAnchor.constraint(equalTo: nameTextField.bottomAnchor, constant: 12),
+            repeatButton.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
+            repeatButton.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
+            
+            timeRangeStack.topAnchor.constraint(equalTo: repeatButton.bottomAnchor, constant: 16),
             timeRangeStack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
             timeRangeStack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
             timeRangeStack.heightAnchor.constraint(equalToConstant: 200),
@@ -281,7 +384,8 @@ class ViewController: UIViewController {
             savedTimesTableView.topAnchor.constraint(equalTo: savedTimesLabel.bottomAnchor, constant: 10),
             savedTimesTableView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
             savedTimesTableView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
-            savedTimesTableView.heightAnchor.constraint(equalToConstant: 200),
+            savedTimesTableView.heightAnchor.constraint(greaterThanOrEqualToConstant: 200),
+            savedTimesTableView.heightAnchor.constraint(lessThanOrEqualToConstant: 400),
             
             // Contacts section
             contactsLabel.topAnchor.constraint(equalTo: savedTimesTableView.bottomAnchor, constant: 30),
@@ -307,6 +411,7 @@ class ViewController: UIViewController {
         
         // Add button action
         addTimeRangeButton.addTarget(self, action: #selector(addTimeRangeTapped), for: .touchUpInside)
+        repeatButton.addTarget(self, action: #selector(repeatButtonTapped), for: .touchUpInside)
     }
     
     private func setupSearchBar() {
@@ -331,11 +436,17 @@ class ViewController: UIViewController {
     @objc private func addTimeRangeTapped() {
         let startTime = startTimePicker.date
         let endTime = endTimePicker.date
+        let name = nameTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         
         if let editingIndexPath = editingIndexPath {
             // Update existing time range
             if validateTimeRange(start: startTime, end: endTime) {
-                savedTimeRanges[editingIndexPath.row] = TimeRange(start: startTime, end: endTime)
+                savedTimeRanges[editingIndexPath.row] = TimeRange(
+                    name: name,
+                    start: startTime,
+                    end: endTime,
+                    repeatDays: selectedRepeatDays
+                )
                 saveTimeRanges()
                 savedTimesTableView.reloadRows(at: [editingIndexPath], with: .automatic)
                 resetTimeRangeEditing()
@@ -346,7 +457,12 @@ class ViewController: UIViewController {
         } else {
             // Add new time range
             if validateTimeRange(start: startTime, end: endTime) {
-                savedTimeRanges.append(TimeRange(start: startTime, end: endTime))
+                savedTimeRanges.append(TimeRange(
+                    name: name,
+                    start: startTime,
+                    end: endTime,
+                    repeatDays: selectedRepeatDays
+                ))
                 saveTimeRanges()
                 savedTimesTableView.reloadData()
                 resetTimeRangePickers()
@@ -398,6 +514,9 @@ class ViewController: UIViewController {
         editingIndexPath = nil
         addTimeRangeButton.setTitle("Add Time Range", for: .normal)
         addTimeRangeButton.backgroundColor = .systemBlue
+        nameTextField.text = ""
+        selectedRepeatDays = []
+        updateRepeatButtonTitle()
         resetTimeRangePickers()
     }
     
@@ -572,20 +691,116 @@ class ViewController: UIViewController {
             picker.overrideUserInterfaceStyle = .light
         }
     }
+    
+    @objc private func repeatButtonTapped() {
+        let alert = UIAlertController(title: "Repeat", message: "Select days to repeat", preferredStyle: .actionSheet)
+        
+        let options: [(String, Set<Int>)] = [
+            ("No repeat", []),
+            ("Every day", Set(1...7)),
+            ("Weekdays", Set(2...6)),
+            ("Weekends", Set([1, 7])),
+            ("Custom...", selectedRepeatDays)
+        ]
+        
+        for (title, days) in options {
+            alert.addAction(UIAlertAction(title: title, style: .default) { [weak self] _ in
+                if title == "Custom..." {
+                    self?.showCustomDaysPicker()
+                } else {
+                    self?.selectedRepeatDays = days
+                    self?.updateRepeatButtonTitle()
+                }
+            })
+        }
+        
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        
+        if let popover = alert.popoverPresentationController {
+            popover.sourceView = repeatButton
+            popover.sourceRect = repeatButton.bounds
+        }
+        
+        present(alert, animated: true)
+    }
+    
+    private func showCustomDaysPicker() {
+        let alert = UIAlertController(title: "Select Days", message: nil, preferredStyle: .alert)
+        
+        let days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+        var selectedDays = selectedRepeatDays
+        
+        for (index, day) in days.enumerated() {
+            alert.addAction(UIAlertAction(title: day, style: .default) { [weak self] _ in
+                let dayNumber = index + 1
+                if selectedDays.contains(dayNumber) {
+                    selectedDays.remove(dayNumber)
+                } else {
+                    selectedDays.insert(dayNumber)
+                }
+                self?.selectedRepeatDays = selectedDays
+                self?.updateRepeatButtonTitle()
+                self?.showCustomDaysPicker() // Show the picker again
+            })
+        }
+        
+        alert.addAction(UIAlertAction(title: "Done", style: .cancel))
+        
+        present(alert, animated: true)
+    }
+    
+    private func updateRepeatButtonTitle() {
+        let timeRange = TimeRange(name: "", start: Date(), end: Date(), repeatDays: selectedRepeatDays)
+        repeatButton.setTitle(timeRange.getRepeatDaysDescription(), for: .normal)
+    }
+
+    @objc private func dismissKeyboard() {
+        view.endEditing(true)
+    }
 }
 
 // MARK: - TimeRangeCell
 class TimeRangeCell: UITableViewCell {
+    private let containerView: UIView = {
+        let view = UIView()
+        view.backgroundColor = .systemBackground
+        view.layer.cornerRadius = 12
+        view.layer.borderWidth = 1
+        view.layer.borderColor = UIColor.systemGray5.cgColor
+        return view
+    }()
+
+    private let stackView: UIStackView = {
+        let stack = UIStackView()
+        stack.axis = .vertical
+        stack.spacing = 6
+        return stack
+    }()
+
+    private let nameLabel: UILabel = {
+        let label = UILabel()
+        label.font = .systemFont(ofSize: 17, weight: .semibold)
+        label.textColor = .label
+        return label
+    }()
+    
     private let timeLabel: UILabel = {
         let label = UILabel()
-        label.font = .systemFont(ofSize: 17)
-        label.textColor = .label
+        label.font = .systemFont(ofSize: 15)
+        label.textColor = .secondaryLabel
+        return label
+    }()
+    
+    private let repeatLabel: UILabel = {
+        let label = UILabel()
+        label.font = .systemFont(ofSize: 13)
+        label.textColor = .tertiaryLabel
         return label
     }()
     
     private let editButton: UIButton = {
         let button = UIButton(type: .system)
-        button.setImage(UIImage(systemName: "pencil"), for: .normal)
+        button.setImage(UIImage(systemName: "pencil.circle.fill"), for: .normal)
         button.tintColor = .systemBlue
         return button
     }()
@@ -600,23 +815,35 @@ class TimeRangeCell: UITableViewCell {
     }
     
     private func setupUI() {
-        backgroundColor = .systemBackground
+        backgroundColor = .clear
+        selectionStyle = .none
         
-        contentView.addSubview(timeLabel)
-        contentView.addSubview(editButton)
+        contentView.addSubview(containerView)
+        containerView.addSubview(stackView)
+        stackView.addArrangedSubview(nameLabel)
+        stackView.addArrangedSubview(timeLabel)
+        stackView.addArrangedSubview(repeatLabel)
+        containerView.addSubview(editButton)
         
-        timeLabel.translatesAutoresizingMaskIntoConstraints = false
+        containerView.translatesAutoresizingMaskIntoConstraints = false
+        stackView.translatesAutoresizingMaskIntoConstraints = false
         editButton.translatesAutoresizingMaskIntoConstraints = false
         
         NSLayoutConstraint.activate([
-            timeLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
-            timeLabel.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
-            timeLabel.trailingAnchor.constraint(equalTo: editButton.leadingAnchor, constant: -8),
+            containerView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 8),
+            containerView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
+            containerView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
+            containerView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -8),
             
-            editButton.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
-            editButton.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
-            editButton.widthAnchor.constraint(equalToConstant: 44),
-            editButton.heightAnchor.constraint(equalToConstant: 44)
+            stackView.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 12),
+            stackView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 16),
+            stackView.trailingAnchor.constraint(equalTo: editButton.leadingAnchor, constant: -8),
+            stackView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -12),
+            
+            editButton.centerYAnchor.constraint(equalTo: containerView.centerYAnchor),
+            editButton.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -16),
+            editButton.widthAnchor.constraint(equalToConstant: 32),
+            editButton.heightAnchor.constraint(equalToConstant: 32)
         ])
     }
     
@@ -627,20 +854,38 @@ class TimeRangeCell: UITableViewCell {
         let startTime = dateFormatter.string(from: timeRange.start)
         let endTime = dateFormatter.string(from: timeRange.end)
         
-        timeLabel.text = "\(startTime) - \(endTime)"
+        nameLabel.text = timeRange.name.isEmpty ? "Unnamed Range" : timeRange.name
+        timeLabel.text = "🕐 \(startTime) - \(endTime)"
+        repeatLabel.text = "🔄 \(timeRange.getRepeatDaysDescription())"
+        
         editButton.addTarget(self, action: #selector(editButtonTapped), for: .touchUpInside)
         self.onEdit = onEdit
+        
+        // Add shadow to container view
+        containerView.layer.shadowColor = UIColor.black.cgColor
+        containerView.layer.shadowOffset = CGSize(width: 0, height: 2)
+        containerView.layer.shadowRadius = 4
+        containerView.layer.shadowOpacity = 0.1
     }
     
     private var onEdit: (() -> Void)?
     
     @objc private func editButtonTapped() {
-        onEdit?()
+        UIView.animate(withDuration: 0.1, animations: {
+            self.containerView.transform = CGAffineTransform(scaleX: 0.95, y: 0.95)
+        }) { _ in
+            UIView.animate(withDuration: 0.1) {
+                self.containerView.transform = .identity
+            }
+            self.onEdit?()
+        }
     }
 }
 
 // MARK: - ContactCell
 class ContactCell: UITableViewCell {
+    private let feedbackGenerator = UIImpactFeedbackGenerator(style: .medium)
+    
     private let contactImageView: UIImageView = {
         let imageView = UIImageView()
         imageView.contentMode = .scaleAspectFill
@@ -670,16 +915,20 @@ class ContactCell: UITableViewCell {
         button.backgroundColor = .systemYellow.withAlphaComponent(0.2)
         button.setTitleColor(.label, for: .normal)
         button.layer.cornerRadius = 15
+        button.layer.borderWidth = 1
+        button.layer.borderColor = UIColor.systemYellow.cgColor
         button.tag = 1
         return button
     }()
     
     private let noButton: UIButton = {
         let button = UIButton(type: .system)
-        button.setTitle("No", for: .normal)
+        button.setTitle("Risky", for: .normal)
         button.backgroundColor = .systemRed.withAlphaComponent(0.2)
         button.setTitleColor(.label, for: .normal)
         button.layer.cornerRadius = 15
+        button.layer.borderWidth = 1
+        button.layer.borderColor = UIColor.systemRed.cgColor
         button.tag = 2
         return button
     }()
@@ -732,21 +981,52 @@ class ContactCell: UITableViewCell {
             contactImageView.tintColor = .systemGray3
         }
         
-        // Reset button appearances
+        // Reset button appearances and cell background
         cautionButton.alpha = 1.0
         noButton.alpha = 1.0
+        backgroundColor = .systemBackground
         
-        // Set default background colors (unselected state)
+        // Set default background colors and borders (unselected state)
         cautionButton.backgroundColor = .systemYellow.withAlphaComponent(0.2)
-        noButton.backgroundColor = .systemRed.withAlphaComponent(0.2)
+        cautionButton.layer.borderColor = UIColor.systemYellow.cgColor
+        cautionButton.transform = .identity
         
-        // Update selected rating with darker colors
+        noButton.backgroundColor = .systemRed.withAlphaComponent(0.2)
+        noButton.layer.borderColor = UIColor.systemRed.cgColor
+        noButton.transform = .identity
+        
+        // Add button press animations
+        [cautionButton, noButton].forEach { button in
+            button.addTarget(self, action: #selector(buttonTouchDown(_:)), for: .touchDown)
+            button.addTarget(self, action: #selector(buttonTouchUp(_:)), for: [.touchUpInside, .touchUpOutside])
+        }
+        
+        // Update selected rating with darker colors, borders, and cell background
         if let rating = currentRating {
             if rating == 1 {
                 cautionButton.backgroundColor = .systemYellow
+                cautionButton.layer.borderColor = UIColor.systemYellow.withAlphaComponent(0.8).cgColor
+                cautionButton.transform = CGAffineTransform(scaleX: 1.05, y: 1.05)
             } else if rating == 2 {
                 noButton.backgroundColor = .systemRed
+                noButton.layer.borderColor = UIColor.systemRed.withAlphaComponent(0.8).cgColor
+                noButton.transform = CGAffineTransform(scaleX: 1.05, y: 1.05)
+                backgroundColor = .systemRed.withAlphaComponent(0.1)
             }
+        }
+    }
+
+    @objc private func buttonTouchDown(_ sender: UIButton) {
+        feedbackGenerator.prepare()
+        UIView.animate(withDuration: 0.1) {
+            sender.transform = CGAffineTransform(scaleX: 0.95, y: 0.95)
+        }
+    }
+    
+    @objc private func buttonTouchUp(_ sender: UIButton) {
+        feedbackGenerator.impactOccurred()
+        UIView.animate(withDuration: 0.1) {
+            sender.transform = .identity
         }
     }
 }
@@ -802,6 +1082,8 @@ extension ViewController: UITableViewDelegate, UITableViewDataSource {
         let timeRange = savedTimeRanges[indexPath.row]
         startTimePicker.date = timeRange.start
         endTimePicker.date = timeRange.end
+        nameTextField.text = timeRange.name
+        selectedRepeatDays = timeRange.repeatDays
         editingIndexPath = indexPath
         addTimeRangeButton.setTitle("Update Time Range", for: .normal)
         addTimeRangeButton.backgroundColor = .systemOrange
@@ -858,8 +1140,15 @@ extension ViewController: UITableViewDelegate, UITableViewDataSource {
         let contactData = ContactManager.Contact(identifier: identifier, rating: rating)
         ContactManager.shared.saveContact(contactData)
         
-        // Refresh the cell
-        contactsTableView.reloadRows(at: [indexPath], with: .automatic)
+        // Provide feedback
+        let feedbackGenerator = UINotificationFeedbackGenerator()
+        feedbackGenerator.prepare()
+        feedbackGenerator.notificationOccurred(rating == 2 ? .warning : .success)
+        
+        // Refresh the cell with animation
+        UIView.animate(withDuration: 0.3) {
+            self.contactsTableView.reloadRows(at: [indexPath], with: .fade)
+        }
     }
     
     func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
@@ -871,6 +1160,36 @@ extension ViewController: UITableViewDelegate, UITableViewDataSource {
 extension ViewController: UISearchBarDelegate {
     func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
         filterContacts(with: searchText)
+    }
+}
+
+// MARK: - UITextField Delegate
+extension ViewController: UITextFieldDelegate {
+    func textFieldDidBeginEditing(_ textField: UITextField) {
+        UIView.animate(withDuration: 0.2) {
+            textField.layer.borderColor = UIColor.systemBlue.cgColor
+            textField.layer.shadowOpacity = 0.2
+        }
+    }
+    
+    func textFieldDidEndEditing(_ textField: UITextField) {
+        UIView.animate(withDuration: 0.2) {
+            textField.layer.borderColor = UIColor.systemBlue.withAlphaComponent(0.3).cgColor
+            textField.layer.shadowOpacity = 0.1
+        }
+    }
+    
+    func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+        textField.resignFirstResponder()
+        return true
+    }
+    
+    func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
+        // Limit name length to 30 characters
+        let currentText = textField.text ?? ""
+        guard let stringRange = Range(range, in: currentText) else { return false }
+        let updatedText = currentText.replacingCharacters(in: stringRange, with: string)
+        return updatedText.count <= 30
     }
 }
 
