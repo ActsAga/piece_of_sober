@@ -6,10 +6,10 @@
 	<array>
 		<dict>
 			<key>CFBundleURLName</key>
-			<string>com.danielbekele.PieceOfSober</string>
+			<string>com.danielbekele.pieceOfSober</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>PieceOfSober</string>
+				<string>pieceOfSober</string>
 			</array>
 		</dict>
 	</array>
@@ -32,5 +32,9 @@
 			</array>
 		</dict>
 	</dict>
+	<key>NSContactsUsageDescription</key>
+	<string>We need access to your contacts to allow you to rate them for the Piece of Sober feature.</string>
+	<key>CFBundleDisplayName</key>
+	<string>Piece of Sober</string>
 </dict>
 </plist>

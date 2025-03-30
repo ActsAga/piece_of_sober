@@ -9,7 +9,7 @@ import Foundation
 
 class ContactManager {
     static let shared = ContactManager()
-    private let userDefaults = UserDefaults(suiteName: "group.com.danielbekele.PieceOfSober")!
+    private let userDefaults = UserDefaults(suiteName: "group.com.danielbekele.pieceOfSober")!
     
     struct Contact: Codable {
         let identifier: String

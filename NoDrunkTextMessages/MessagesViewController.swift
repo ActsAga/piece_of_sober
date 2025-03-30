@@ -50,7 +50,7 @@ class MessagesViewController: MSMessagesAppViewController {
     private var currentConversation: MSConversation?
     private var messageText: String = ""
     private var sendTimer: Timer?
-    private let groupID = "group.com.danielbekele.PieceOfSober"
+    private let groupID = "group.com.danielbekele.pieceOfSober"
     private var warningAlert: UIAlertController?
     private var savedTimeRanges: [TimeRange] = []
     
