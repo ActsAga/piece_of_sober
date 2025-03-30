@@ -1007,6 +1007,7 @@ class ContactCell: UITableViewCell {
                 cautionButton.backgroundColor = .systemYellow
                 cautionButton.layer.borderColor = UIColor.systemYellow.withAlphaComponent(0.8).cgColor
                 cautionButton.transform = CGAffineTransform(scaleX: 1.05, y: 1.05)
+                backgroundColor = .systemYellow.withAlphaComponent(0.1)
             } else if rating == 2 {
                 noButton.backgroundColor = .systemRed
                 noButton.layer.borderColor = UIColor.systemRed.withAlphaComponent(0.8).cgColor
