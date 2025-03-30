@@ -109,6 +109,7 @@ class ViewController: UIViewController {
         label.text = "Active Time Range"
         label.font = .boldSystemFont(ofSize: 20)
         label.textAlignment = .center
+        label.textColor = .label
         return label
     }()
     
@@ -230,9 +231,11 @@ class ViewController: UIViewController {
     private let contactsTableView: UITableView = {
         let tableView = UITableView()
         tableView.register(ContactCell.self, forCellReuseIdentifier: "ContactCell")
+        tableView.backgroundColor = .systemBackground
         tableView.layer.cornerRadius = 12
         tableView.layer.borderWidth = 1
         tableView.layer.borderColor = UIColor.systemGray4.cgColor
+        tableView.separatorStyle = .none
         return tableView
     }()
     
@@ -250,6 +253,8 @@ class ViewController: UIViewController {
         let searchBar = UISearchBar()
         searchBar.placeholder = "Search Contacts"
         searchBar.searchBarStyle = .minimal
+        searchBar.backgroundColor = .clear
+        searchBar.tintColor = .systemBlue
         return searchBar
     }()
     
@@ -757,6 +762,25 @@ class ViewController: UIViewController {
     @objc private func dismissKeyboard() {
         view.endEditing(true)
     }
+
+    // Add override for trait collection changes
+    override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
+        super.traitCollectionDidChange(previousTraitCollection)
+        
+        if traitCollection.hasDifferentColorAppearance(comparedTo: previousTraitCollection) {
+            // Update gradient colors for dark mode
+            if let gradientLayer = contentView.layer.sublayers?.first as? CAGradientLayer {
+                gradientLayer.colors = [
+                    UIColor.systemBlue.withAlphaComponent(0.1).cgColor,
+                    UIColor.systemBackground.cgColor
+                ]
+            }
+            
+            // Reload table views to update cell appearances
+            savedTimesTableView.reloadData()
+            contactsTableView.reloadData()
+        }
+    }
 }
 
 // MARK: - TimeRangeCell
@@ -898,6 +922,7 @@ class ContactCell: UITableViewCell {
     private let nameLabel: UILabel = {
         let label = UILabel()
         label.font = .systemFont(ofSize: 16, weight: .medium)
+        label.textColor = .label
         return label
     }()
     
