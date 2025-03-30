@@ -52,9 +52,9 @@ open "Piece of Sober.xcodeproj"
 ├── NoDrunkTextUITests/              # UI tests directory
 │
 ├── ContactManager.swift             # Shared contact management system
-├── NoDrunkText.entitlements        # App entitlements file
-├── NoDrunkText.plist               # App configuration
-└── LICENSE                         # Project license file
+├── NoDrunkText.entitlements         # App entitlements file
+├── NoDrunkText.plist                # App configuration
+└── LICENSE                          # Project license file
 ```
 
 ## License
