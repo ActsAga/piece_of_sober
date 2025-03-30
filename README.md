@@ -60,3 +60,27 @@ open "Piece of Sober.xcodeproj"
 ## License
 
 This project is licensed under the terms of the license included in the [LICENSE](LICENSE) file.
+
+## Screenshots
+
+<div align="center">
+  <table>
+    <tr>
+      <td align="center">
+        <img src="screenshots/loadingpage.png" alt="Loading Screen" width="250"/>
+        <br>
+        <em>Loading Screen</em>
+      </td>
+      <td align="center">
+        <img src="screenshots/landingpage.png" alt="Landing Page" width="250"/>
+        <br>
+        <em>Landing Page</em>
+      </td>
+      <td align="center">
+        <img src="screenshots/contacts.png" alt="Contacts Management" width="250"/>
+        <br>
+        <em>Contact Management</em>
+      </td>
+    </tr>
+  </table>
+</div>
