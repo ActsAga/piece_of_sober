@@ -239,6 +239,42 @@ class ViewController: UIViewController {
         return tableView
     }()
     
+    private let sobrietyTestLabel: UILabel = {
+        let label = UILabel()
+        label.text = "Sobriety Test"
+        label.font = .systemFont(ofSize: 24, weight: .semibold)
+        label.textAlignment = .center
+        return label
+    }()
+    
+    private let sobrietyTestDescription: UILabel = {
+        let label = UILabel()
+        label.text = "Take a quick test to check your coordination and reaction time"
+        label.font = .systemFont(ofSize: 16, weight: .regular)
+        label.textColor = .secondaryLabel
+        label.textAlignment = .center
+        label.numberOfLines = 0
+        return label
+    }()
+    
+    private let takeTestButton: UIButton = {
+        let button = UIButton(type: .system)
+        button.setTitle("Take Sobriety Test", for: .normal)
+        button.backgroundColor = .systemGreen
+        button.setTitleColor(.white, for: .normal)
+        button.titleLabel?.font = .systemFont(ofSize: 18, weight: .semibold)
+        button.layer.cornerRadius = 12
+        button.contentEdgeInsets = UIEdgeInsets(top: 12, left: 24, bottom: 12, right: 24)
+        
+        // Add shadow for depth
+        button.layer.shadowColor = UIColor.black.cgColor
+        button.layer.shadowOffset = CGSize(width: 0, height: 2)
+        button.layer.shadowRadius = 4
+        button.layer.shadowOpacity = 0.1
+        
+        return button
+    }()
+    
     private let addTimeRangeButton: UIButton = {
         let button = UIButton(type: .system)
         button.setTitle("Add Time Range", for: .normal)
@@ -277,6 +313,9 @@ class ViewController: UIViewController {
         // Add tap gesture to dismiss keyboard
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboard))
         view.addGestureRecognizer(tapGesture)
+        
+        // Add target for sobriety test button
+        takeTestButton.addTarget(self, action: #selector(takeTestButtonTapped), for: .touchUpInside)
     }
     
     override func viewDidLayoutSubviews() {
@@ -312,6 +351,9 @@ class ViewController: UIViewController {
         contentView.addSubview(contactsLabel)
         contentView.addSubview(contactsDescriptionLabel)
         contentView.addSubview(contactsTableView)
+        contentView.addSubview(sobrietyTestLabel)
+        contentView.addSubview(sobrietyTestDescription)
+        contentView.addSubview(takeTestButton)
         
         // Configure constraints
         scrollView.translatesAutoresizingMaskIntoConstraints = false
@@ -326,6 +368,9 @@ class ViewController: UIViewController {
         addTimeRangeButton.translatesAutoresizingMaskIntoConstraints = false
         savedTimesLabel.translatesAutoresizingMaskIntoConstraints = false
         savedTimesTableView.translatesAutoresizingMaskIntoConstraints = false
+        sobrietyTestLabel.translatesAutoresizingMaskIntoConstraints = false
+        sobrietyTestDescription.translatesAutoresizingMaskIntoConstraints = false
+        takeTestButton.translatesAutoresizingMaskIntoConstraints = false
         contactsLabel.translatesAutoresizingMaskIntoConstraints = false
         contactsDescriptionLabel.translatesAutoresizingMaskIntoConstraints = false
         contactsTableView.translatesAutoresizingMaskIntoConstraints = false
@@ -405,7 +450,19 @@ class ViewController: UIViewController {
             contactsTableView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
             contactsTableView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
             contactsTableView.heightAnchor.constraint(equalToConstant: 400),
-            contactsTableView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -20)
+            
+            // Add sobriety test section constraints
+            sobrietyTestLabel.topAnchor.constraint(equalTo: contactsTableView.bottomAnchor, constant: 30),
+            sobrietyTestLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
+            sobrietyTestLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
+            
+            sobrietyTestDescription.topAnchor.constraint(equalTo: sobrietyTestLabel.bottomAnchor, constant: 8),
+            sobrietyTestDescription.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
+            sobrietyTestDescription.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
+            
+            takeTestButton.topAnchor.constraint(equalTo: sobrietyTestDescription.bottomAnchor, constant: 20),
+            takeTestButton.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
+            takeTestButton.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -30)
         ])
         
         // Configure table views
@@ -417,6 +474,7 @@ class ViewController: UIViewController {
         // Add button action
         addTimeRangeButton.addTarget(self, action: #selector(addTimeRangeTapped), for: .touchUpInside)
         repeatButton.addTarget(self, action: #selector(repeatButtonTapped), for: .touchUpInside)
+        takeTestButton.addTarget(self, action: #selector(takeTestButtonTapped), for: .touchUpInside)
     }
     
     private func setupSearchBar() {
@@ -780,6 +838,12 @@ class ViewController: UIViewController {
             savedTimesTableView.reloadData()
             contactsTableView.reloadData()
         }
+    }
+
+    @objc private func takeTestButtonTapped() {
+        let sobrietyVC = SobrietyGameViewController()
+        sobrietyVC.modalPresentationStyle = .fullScreen
+        present(sobrietyVC, animated: true)
     }
 }
 
