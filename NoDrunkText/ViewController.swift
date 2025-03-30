@@ -54,14 +54,21 @@ class ViewController: UIViewController {
     
     private let contentView: UIView = {
         let view = UIView()
+        // Add gradient background
+        let gradientLayer = CAGradientLayer()
+        gradientLayer.colors = [
+            UIColor.systemBlue.withAlphaComponent(0.1).cgColor,
+            UIColor.systemBackground.cgColor
+        ]
+        gradientLayer.locations = [0.0, 0.5]
+        view.layer.insertSublayer(gradientLayer, at: 0)
         return view
     }()
     
     private let logoImageView: UIImageView = {
         let imageView = UIImageView()
         imageView.contentMode = .scaleAspectFit
-        imageView.image = UIImage(systemName: "moon.stars.fill")
-        imageView.tintColor = .systemBlue
+        imageView.image = UIImage(named: "AppIcon")
         return imageView
     }()
     
@@ -106,7 +113,7 @@ class ViewController: UIViewController {
     private let savedTimesLabel: UILabel = {
         let label = UILabel()
         label.text = "Saved Time Ranges"
-        label.font = .boldSystemFont(ofSize: 20)
+        label.font = .systemFont(ofSize: 24, weight: .semibold)
         label.textAlignment = .center
         return label
     }()
@@ -114,9 +121,13 @@ class ViewController: UIViewController {
     private let savedTimesTableView: UITableView = {
         let tableView = UITableView()
         tableView.register(TimeRangeCell.self, forCellReuseIdentifier: "TimeRangeCell")
+        tableView.backgroundColor = .systemBackground
         tableView.layer.cornerRadius = 12
         tableView.layer.borderWidth = 1
         tableView.layer.borderColor = UIColor.systemGray4.cgColor
+        tableView.separatorInset = UIEdgeInsets(top: 0, left: 16, bottom: 0, right: 16)
+        tableView.estimatedRowHeight = 60
+        tableView.rowHeight = UITableView.automaticDimension
         return tableView
     }()
     
@@ -177,6 +188,15 @@ class ViewController: UIViewController {
         setupSearchBar()
         requestContactsAccess()
         loadSavedTimeRanges()
+    }
+    
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        
+        // Update gradient frame
+        if let gradientLayer = contentView.layer.sublayers?.first as? CAGradientLayer {
+            gradientLayer.frame = contentView.bounds
+        }
     }
     
     // MARK: - Setup
@@ -261,7 +281,7 @@ class ViewController: UIViewController {
             savedTimesTableView.topAnchor.constraint(equalTo: savedTimesLabel.bottomAnchor, constant: 10),
             savedTimesTableView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
             savedTimesTableView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
-            savedTimesTableView.heightAnchor.constraint(equalToConstant: 120),
+            savedTimesTableView.heightAnchor.constraint(equalToConstant: 200),
             
             // Contacts section
             contactsLabel.topAnchor.constraint(equalTo: savedTimesTableView.bottomAnchor, constant: 30),
@@ -530,19 +550,43 @@ class ViewController: UIViewController {
         }
         contactsTableView.reloadData()
     }
+    
+    // Add button animation methods
+    @objc private func buttonTouchDown() {
+        UIView.animate(withDuration: 0.1) {
+            self.addTimeRangeButton.transform = CGAffineTransform(scaleX: 0.95, y: 0.95)
+        }
+    }
+    
+    @objc private func buttonTouchUp() {
+        UIView.animate(withDuration: 0.1) {
+            self.addTimeRangeButton.transform = .identity
+        }
+    }
+    
+    // Update time picker styling
+    private func setupTimePickers() {
+        [startTimePicker, endTimePicker].forEach { picker in
+            picker.backgroundColor = .clear
+            picker.tintColor = .systemBlue
+            picker.overrideUserInterfaceStyle = .light
+        }
+    }
 }
 
 // MARK: - TimeRangeCell
 class TimeRangeCell: UITableViewCell {
     private let timeLabel: UILabel = {
         let label = UILabel()
-        label.font = .systemFont(ofSize: 16)
+        label.font = .systemFont(ofSize: 17)
+        label.textColor = .label
         return label
     }()
     
     private let editButton: UIButton = {
         let button = UIButton(type: .system)
         button.setImage(UIImage(systemName: "pencil"), for: .normal)
+        button.tintColor = .systemBlue
         return button
     }()
     
@@ -556,6 +600,8 @@ class TimeRangeCell: UITableViewCell {
     }
     
     private func setupUI() {
+        backgroundColor = .systemBackground
+        
         contentView.addSubview(timeLabel)
         contentView.addSubview(editButton)
         
@@ -565,6 +611,7 @@ class TimeRangeCell: UITableViewCell {
         NSLayoutConstraint.activate([
             timeLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
             timeLabel.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
+            timeLabel.trailingAnchor.constraint(equalTo: editButton.leadingAnchor, constant: -8),
             
             editButton.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
             editButton.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
